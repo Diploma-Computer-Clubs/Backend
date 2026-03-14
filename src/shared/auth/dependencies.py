@@ -1,9 +1,9 @@
 from fastapi import Request, HTTPException, status, Depends
 from jose import jwt, JWTError
 from datetime import datetime, timezone
-from src.configurations.config import get_auth_data
-from src.users.dao import UserDAO
-from src.users.users import User
+from src.shared.configurations.config import get_auth_data
+from src.modules.users.dao import UserDAO
+from src.modules.users.users import User
 
 
 async def _verify_token(token: str, expected_type: str) -> User:

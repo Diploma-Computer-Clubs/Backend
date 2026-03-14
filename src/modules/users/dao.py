@@ -1,9 +1,9 @@
 from sqlalchemy import select
 from sqlalchemy.orm import joinedload
 
-from src.configurations.database import async_session_maker
-from src.dao.base import BaseDAO
-from src.users.users import User
+from src.shared.configurations.database import async_session_maker
+from src.shared.dao.base import BaseDAO
+from src.modules.users.users import User
 
 class UserDAO(BaseDAO):
     model = User

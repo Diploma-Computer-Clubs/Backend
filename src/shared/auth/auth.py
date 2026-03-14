@@ -2,8 +2,8 @@ from passlib.context import CryptContext
 
 from jose import jwt
 from datetime import datetime, timedelta, timezone
-from src.configurations.config import get_auth_data
-from src.users.dao import UserDAO
+from src.shared.configurations.config import get_auth_data
+from src.modules.users.dao import UserDAO
 from fastapi import Response
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")

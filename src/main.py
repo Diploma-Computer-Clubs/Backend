@@ -1,7 +1,7 @@
 from fastapi import FastAPI
-from src.users.router import router as router_users
-from src.users.router_auth import router as router_auth
-from src.cities.router import router as cities_router
+from src.modules.users.router import router as router_users
+from src.shared.auth.router import router as router_auth
+from src.modules.cities.router import router as cities_router
 
 app = FastAPI()
 

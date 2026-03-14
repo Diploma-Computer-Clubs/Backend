@@ -1,11 +1,11 @@
-from fastapi import Depends
-from src.users.dao import UserDAO
-from src.users.dependencies import get_current_user
-from src.users.schemas import SUser, SUserGetData
-from src.users.rb import RBUser
+from fastapi import Depends, HTTPException
+from src.modules.users.dao import UserDAO
+from src.shared.auth.dependencies import get_current_user
+from src.modules.users.schemas import SUser, SUserGetData
+from src.modules.users.rb import RBUser
 from fastapi import APIRouter
 
-from src.users.users import User
+from src.modules.users.users import User
 
 router = APIRouter(prefix='/users', tags=['Work with users'])
 
@@ -14,11 +14,11 @@ async def get_all_users(response_body: RBUser = Depends()) -> list[SUser]:
     return await UserDAO.find_all(**response_body.to_dict())
 
 
-@router.get("/{id}", summary="Get user by id")
-async def get_user_by_id(user_id: int) -> SUserGetData | dict:
+@router.get("/{id}", summary="Get user by id", response_model=SUserGetData)
+async def get_user_by_id(user_id: int):
     result = await UserDAO.find_full_data(user_id)
     if result is None:
-        return {"message": f"User with id {user_id} not found"}
+        raise HTTPException(status_code=404, detail=f"User with id {user_id} not found")
     return result
 
 

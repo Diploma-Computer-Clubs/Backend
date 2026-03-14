@@ -1,9 +1,9 @@
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncAttrs, AsyncSession
+from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncAttrs
 from sqlalchemy.orm import DeclarativeBase, declared_attr, Mapped, mapped_column
 from sqlalchemy import func, String
-from src.configurations.config import get_db_url
+from src.shared.configurations.config import get_db_url
 from datetime import datetime
-from typing import Annotated, Any, AsyncGenerator
+from typing import Annotated
 
 #Ссылка на БД
 DATABASE_URL = get_db_url()

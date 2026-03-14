@@ -1,7 +1,7 @@
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 
-from src.configurations.database import async_session_maker
+from src.shared.configurations.database import async_session_maker
 from sqlalchemy import update as sqlalchemy_update, delete as sqlalchemy_delete
 
 class BaseDAO:

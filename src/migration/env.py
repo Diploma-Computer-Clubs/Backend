@@ -12,7 +12,7 @@ from os.path import dirname, abspath
 
 sys.path.insert(0, dirname(dirname(abspath(__file__))))
 
-from src.configurations.database import DATABASE_URL, Base
+from src.shared.configurations.database import DATABASE_URL, Base
 
 
 
@@ -20,9 +20,6 @@ from src.configurations.database import DATABASE_URL, Base
 # access to the values within the .ini file in use.
 config = context.config
 #Мой код
-
-from src.users.users import User
-from src.cities.cities import City
 
 #Это объект конфигурации Alembic (alembic.config.Config), который используется для управления параметрами и настройками миграций.
 config.set_main_option("sqlalchemy.url", DATABASE_URL)

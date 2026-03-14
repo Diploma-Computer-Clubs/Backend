@@ -1,7 +1,7 @@
 from sqlalchemy import ForeignKey, text
 from sqlalchemy.orm import relationship, Mapped, mapped_column
-from src.configurations.database import Base, str_uniq, int_pk, str_password
-from src.cities.cities import City
+from src.shared.configurations.database import Base, str_uniq, int_pk, str_password
+from src.modules.cities.cities import City
 from enum import Enum
 
 class Role(str, Enum):

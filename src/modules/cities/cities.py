@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Mapped, relationship
-from src.configurations.database import Base, int_pk, str_uniq
+from src.shared.configurations.database import Base, int_pk, str_uniq
 
 class City(Base):
     __tablename__ = "cities"

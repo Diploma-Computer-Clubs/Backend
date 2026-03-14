@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 
-from src.cities.dao import CityDAO
-from src.cities.schemas import SCityAdd, SCityUpdDesc
+from src.modules.cities.dao import CityDAO
+from src.modules.cities.schemas import SCityAdd, SCityUpdDesc
 
 router = APIRouter(prefix='/cities', tags=['Work with cities'])
 

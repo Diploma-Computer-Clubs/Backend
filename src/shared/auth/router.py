@@ -1,13 +1,13 @@
 from fastapi import Depends
-from src.users.dao import UserDAO
-from src.users.dependencies import get_current_user, get_current_user_by_refresh
-from src.users.schemas import SUser, SUserAuth, SUserGetData
+from src.modules.users.dao import UserDAO
+from src.shared.auth.dependencies import get_current_user_by_refresh
+from src.modules.users.schemas import SUser
+from src.shared.auth.schemas import SUserAuth
 from fastapi import APIRouter, HTTPException, status
-from src.users.auth import get_password_hash, authenticate_user, create_access_token, create_refresh_token, \
-    set_auth_cookies
+from src.shared.auth.auth import get_password_hash, authenticate_user, set_auth_cookies
 from fastapi import Response
 
-from src.users.users import User
+from src.modules.users.users import User
 
 router = APIRouter(prefix='/auth', tags=['Auth'])
 
@@ -18,14 +18,14 @@ async def register_user(user_data: SUser):
     if user:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail='User already exists')
     user_dict = user_data.model_dump()
-    user_dict['password_hash'] = get_password_hash(user_data.password_hash)
+    user_dict['password'] = get_password_hash(user_data.password_hash)
     await UserDAO.add(**user_dict)
     return {'message': 'User successfully created'}
 
 
 @router.post("/login", summary="Login user")
 async def login_user(response: Response, user_data: SUserAuth):
-    user = await authenticate_user(phone_num=user_data.phone_number, password=user_data.password_hash)
+    user = await authenticate_user(phone_num=user_data.phone_number, password=user_data.password)
     if not user:
         raise HTTPException(status_code=401, detail='Wrong login or password')
     access, refresh = set_auth_cookies(response, user.id)
