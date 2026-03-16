@@ -19,7 +19,7 @@ class User(Base):
     city_id: Mapped[int] = mapped_column(ForeignKey('cities.id'), nullable=False)
     city: Mapped["City"] = relationship("City", back_populates="users")
 
-    clubs: Mapped[list["Club"]] = relationship("Club", back_populates="users")
+    clubs: Mapped[list["Club"]] = relationship("Club", back_populates="owner")
 
     bookings: Mapped[list["Booking"]] = relationship("Booking", back_populates="user")
 

@@ -9,7 +9,7 @@ class Computer(Base):
     specification: Mapped[str]
     is_Active: Mapped[bool]
 
-    zone_id: Mapped[int] = mapped_column(ForeignKey('zone.id'), nullable=False)
+    zone_id: Mapped[int] = mapped_column(ForeignKey('zones.id'), nullable=False)
     zone: Mapped["Zone"] = relationship("Zone", back_populates="computers")
 
     bookings: Mapped[list["Booking"]] = relationship("Booking", back_populates="computer")
