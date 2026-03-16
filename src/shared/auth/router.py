@@ -7,7 +7,7 @@ from fastapi import APIRouter, HTTPException, status
 from src.shared.auth.auth import get_password_hash, authenticate_user, set_auth_cookies
 from fastapi import Response
 
-from src.modules.users.users import User
+from src.modules.users.model import User
 
 router = APIRouter(prefix='/auth', tags=['Auth'])
 

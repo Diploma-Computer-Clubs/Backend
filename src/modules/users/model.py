@@ -1,7 +1,7 @@
 from sqlalchemy import ForeignKey, text
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from src.shared.configurations.database import Base, str_uniq, int_pk, str_password
-from src.modules.cities.cities import City
+from src.modules.cities.model import City
 from enum import Enum
 
 class Role(str, Enum):
@@ -18,6 +18,10 @@ class User(Base):
 
     city_id: Mapped[int] = mapped_column(ForeignKey('cities.id'), nullable=False)
     city: Mapped["City"] = relationship("City", back_populates="users")
+
+    clubs: Mapped[list["Club"]] = relationship("Club", back_populates="users")
+
+    bookings: Mapped[list["Booking"]] = relationship("Booking", back_populates="user")
 
     def to_dict(self):
         return {

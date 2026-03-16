@@ -3,7 +3,7 @@ from jose import jwt, JWTError
 from datetime import datetime, timezone
 from src.shared.configurations.config import get_auth_data
 from src.modules.users.dao import UserDAO
-from src.modules.users.users import User
+from src.modules.users.model import User
 
 
 async def _verify_token(token: str, expected_type: str) -> User:

@@ -3,7 +3,7 @@ from sqlalchemy.orm import joinedload
 
 from src.shared.configurations.database import async_session_maker
 from src.shared.dao.base import BaseDAO
-from src.modules.users.users import User
+from src.modules.users.model import User
 
 class UserDAO(BaseDAO):
     model = User

@@ -7,3 +7,5 @@ class City(Base):
     city: Mapped[str_uniq]
     #Зеркальное подключение FK
     users: Mapped[list["User"]] = relationship("User", back_populates="city")
+
+    clubs: Mapped[list["Club"]] = relationship("Club", back_populates="city")

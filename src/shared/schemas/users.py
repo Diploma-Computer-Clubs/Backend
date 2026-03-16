@@ -17,3 +17,5 @@ class SUserBase(BaseModel):
 
 class SUserPassword(BaseModel):
     password: str = Field(..., min_length=8, max_length=128, description="Password")
+
+#Клубы подробнее

@@ -5,7 +5,7 @@ from src.modules.users.schemas import SUser, SUserGetData
 from src.modules.users.rb import RBUser
 from fastapi import APIRouter
 
-from src.modules.users.users import User
+from src.modules.users.model import User
 
 router = APIRouter(prefix='/users', tags=['Work with users'])
 
