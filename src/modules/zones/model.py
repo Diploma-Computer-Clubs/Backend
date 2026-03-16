@@ -1,7 +1,6 @@
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from src.shared.configurations.database import Base, int_pk
-from src.modules.clubs.model import Club
 
 class Zone(Base):
     id: Mapped[int_pk]

@@ -2,8 +2,6 @@ from datetime import datetime
 from sqlalchemy import ForeignKey, text
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from src.shared.configurations.database import Base, int_pk
-from src.modules.users.model import User
-from src.modules.computers.model import Computer
 from enum import Enum
 
 class Status(str, Enum):
