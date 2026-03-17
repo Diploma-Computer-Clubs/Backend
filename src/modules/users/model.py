@@ -10,7 +10,7 @@ class Role(str, Enum):
 class User(Base):
     id: Mapped[int_pk]
     phone_number: Mapped[str_uniq]
-    password_hash: Mapped[str_password]
+    password: Mapped[str_password]
     full_name: Mapped[str]
     role: Mapped[Role] = mapped_column(default=Role.user, server_default=text("'user'"), nullable=False)
     reputation: Mapped[int] = mapped_column(server_default=text('100'))
