@@ -1,6 +1,7 @@
 from sqlalchemy import func
 from src.modules.users.dao import UserDAO
-from src.modules.users.schemas import SUser
+from src.modules.users.model import User
+from src.modules.users.schemas import SUser, SUserPostData
 from src.shared.utils.auth_utils import get_password_hash
 
 
@@ -38,3 +39,10 @@ class UserService:
         if not result:
             return None
         return result
+
+    @classmethod
+    async def change_user_data(cls,  user: int, user_data: SUserPostData):
+        result = await UserDAO.update(filter_by={"id": user},  city_id=user_data.city_id, full_name=user_data.full_name, updated_at=func.now())
+        if not result:
+            return None
+        return {'message': 'Info changed successfully'}

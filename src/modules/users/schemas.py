@@ -1,4 +1,4 @@
-from pydantic import Field, ConfigDict, field_validator
+from pydantic import Field, ConfigDict, field_validator, BaseModel
 from src.shared.schemas.users import SUserBase, SUserPassword, Role
 
 class SUser(SUserBase, SUserPassword):
@@ -18,3 +18,9 @@ class SUserGetData(SUserBase):
         if hasattr(v, 'city'):
             return v.city
         return v
+
+class SUserGetCity(BaseModel):
+    city_id: int
+
+class SUserPostData(SUserGetCity):
+    full_name: str

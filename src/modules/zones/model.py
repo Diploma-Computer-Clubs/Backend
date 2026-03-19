@@ -12,6 +12,8 @@ class Zone(Base):
 
     computers: Mapped[list["Computer"]] = relationship("Computer", back_populates="zone")
 
+    bookings: Mapped[list["Booking"]] = relationship("Booking", back_populates="zone")
+
     def to_dict(self):
         return {
             "id": self.id,

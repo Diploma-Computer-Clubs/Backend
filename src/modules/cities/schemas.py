@@ -1,8 +1,13 @@
 from pydantic import BaseModel, Field
 
 class SCityAdd(BaseModel):
-    city: str = Field(..., description="City name to add")
+    city: str = Field(..., description="City name")
+    latitude: float | None = None
+    longitude: float | None = None
 
-class SCityUpdDesc(BaseModel):
+class SCityUpdDesc(SCityAdd):
     id: int
-    city: str = Field(..., description="New city name")
+
+class SCityCoordinates(BaseModel):
+    latitude: float | None = None
+    longitude: float | None = None

@@ -15,6 +15,12 @@ class Booking(Base):
     computer_id: Mapped[int] = mapped_column(ForeignKey('computers.id'), nullable=False)
     computer: Mapped["Computer"] = relationship("Computer", back_populates="bookings")
 
+    zone_id: Mapped[int] = mapped_column(ForeignKey('zones.id'), nullable=False)
+    zone: Mapped["Zone"] = relationship("Zone", back_populates="bookings")
+
+    club_id: Mapped[int] = mapped_column(ForeignKey('clubs.id'), nullable=False)
+    club: Mapped["Club"] = relationship("Club", back_populates="bookings")
+
     def to_dict(self):
         return {
             "id": self.id,
