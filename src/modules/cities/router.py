@@ -10,7 +10,7 @@ router = APIRouter(prefix='/cities', tags=['Work with cities'])
 
 
 @router.post("/add", summary="Adding city")
-async def add_city(city: SCityAdd, user_id: int = Depends(get_current_user_id)):
+async def add_city(city: SCityAdd):
     new_city = await CityService.adding_city(city)
     if not new_city:
         raise HTTPException(status_code=400, detail="Error adding a city")
