@@ -1,7 +1,7 @@
 from typing import List
 
 from fastapi import APIRouter, HTTPException, Depends
-from src.modules.clubs.schemas import SClubCreate, SClubMainInfo, SClubMap
+from src.modules.clubs.schemas import SClubCreate, SClubMainInfo, SClubMap, SClubChange
 from src.modules.clubs.service import ClubService
 from src.shared.dependencies.user_dependency import get_current_user_id
 
@@ -9,7 +9,7 @@ router = APIRouter(prefix='/clubs', tags=['Work with clubs'])
 
 
 @router.post('/register', summary='Register a new club')
-async def register_club(club_info: SClubCreate):
+async def register_club(club_info: SClubCreate, user_id: int = Depends(get_current_user_id)):
     result = await ClubService.create_club(club_info)
     if not result:
         raise HTTPException(status_code=400, detail="Error adding a club")
@@ -42,3 +42,13 @@ async def get_main_info(club_id: int, user_id: int = Depends(get_current_user_id
     if not result:
         raise HTTPException(status_code=404, detail=f"Club {club_id} not found")
     return result
+
+
+@router.delete('/delete_club', summary='Delete club')
+async def delete_club(club_id: int, user_id: int = Depends(get_current_user_id)):
+    return await ClubService.delete_clubs(club_id)
+
+
+@router.patch('/update_club', summary='Update club')
+async def update_club(club_info: SClubChange, user_id: int = Depends(get_current_user_id)):
+    return await ClubService.update_club(club_info)

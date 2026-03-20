@@ -1,7 +1,7 @@
 from fastapi import HTTPException
 from sqlalchemy.exc import IntegrityError
 
-from src.modules.clubs.schemas import SClubCreate
+from src.modules.clubs.schemas import SClubCreate, SClubChange
 from src.modules.clubs.dao import ClubDAO
 from src.shared.service.coordinate_service import CoordinatesService
 
@@ -47,3 +47,11 @@ class ClubService:
     @classmethod
     async def get_clubs_count(cls, city_id: int):
         return await ClubDAO.count_by_city(city_id)
+
+    @classmethod
+    async def delete_clubs(cls, club_id: int):
+        return await ClubDAO.delete(id=club_id)
+
+    @classmethod
+    async def upadate_clubs(cls, club_info: SClubChange):
+        return await ClubDAO.update(id=club_info.id, **club_info.model_dump())

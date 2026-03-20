@@ -13,6 +13,7 @@ updated_at = Annotated[datetime, mapped_column(server_default=func.now(), onupda
 str_uniq = Annotated[str, mapped_column(unique=True, nullable=False)]
 str_null_true = Annotated[str, mapped_column(nullable=True)]
 str_password = Annotated[str, mapped_column(String(128), nullable=False)]
+float_bull_true = Annotated[float, mapped_column(nullable=True)]
 
 class Base(AsyncAttrs, DeclarativeBase):
     __abstract__ = True

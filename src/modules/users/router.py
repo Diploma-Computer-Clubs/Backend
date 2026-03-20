@@ -5,6 +5,7 @@ from fastapi import APIRouter
 from src.modules.users.model import User
 from src.modules.users.service import UserService
 from src.shared.auth.jwt import set_auth_tokens
+from src.shared.dependencies.user_dependency import get_current_user_id
 
 router = APIRouter(prefix='/users', tags=['Work with users'])
 
@@ -47,3 +48,8 @@ async def get_me(user_city_id: User = Depends(get_current_user)):
 @router.patch('/change_user', summary='Change users name and city')
 async def change_user(user_data: SUserPostData, user: int = Depends(get_current_user)):
     return await UserService.change_user_data(user.id, user_data)
+
+
+@router.delete('/delete_user', summary='Delete user')
+async def delete_user(user_id: int = Depends(get_current_user_id)):
+    return await UserService.delete_user(user_id)

@@ -1,11 +1,17 @@
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import relationship, Mapped, mapped_column
-from src.shared.configurations.database import Base, int_pk
+from src.shared.configurations.database import Base, int_pk, str_null_true
+
 
 class Zone(Base):
     id: Mapped[int_pk]
     name: Mapped[str]
     cost: Mapped[int]
+    cpu: Mapped[str_null_true]
+    gpu: Mapped[str_null_true]
+    ram: Mapped[str_null_true]
+    ssd: Mapped[str_null_true]
+    monitor: Mapped[str_null_true]
 
     club_id: Mapped[int] = mapped_column(ForeignKey('clubs.id'), nullable=False)
     club: Mapped["Club"] = relationship("Club", back_populates="zones")

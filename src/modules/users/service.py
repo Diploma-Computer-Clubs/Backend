@@ -46,3 +46,7 @@ class UserService:
         if not result:
             return None
         return {'message': 'Info changed successfully'}
+
+    @classmethod
+    async def delete_user(cls, user_id: int):
+        return await UserDAO.delete(id=user_id)

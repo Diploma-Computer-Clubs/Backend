@@ -1,15 +1,16 @@
 from typing import List
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 
 from src.modules.cities.schemas import SCityAdd, SCityUpdDesc, SCityCoordinates
 from src.modules.cities.service import CityService
+from src.shared.dependencies.user_dependency import get_current_user_id
 
 router = APIRouter(prefix='/cities', tags=['Work with cities'])
 
 
 @router.post("/add", summary="Adding city")
-async def add_city(city: SCityAdd):
+async def add_city(city: SCityAdd, user_id: int = Depends(get_current_user_id)):
     new_city = await CityService.adding_city(city)
     if not new_city:
         raise HTTPException(status_code=400, detail="Error adding a city")
@@ -17,7 +18,7 @@ async def add_city(city: SCityAdd):
 
 
 @router.patch("/update", summary="Updating city")
-async def update_city(city: SCityUpdDesc):
+async def update_city(city: SCityUpdDesc, user_id: int = Depends(get_current_user_id)):
     success = await CityService.update_city(city)
     if not success:
         raise HTTPException(status_code=404, detail='City does not exist')
@@ -25,7 +26,7 @@ async def update_city(city: SCityUpdDesc):
 
 
 @router.delete("/delete/{city_id}", summary="Deleting city")
-async def delete_city(city_id: int):
+async def delete_city(city_id: int, user_id: int = Depends(get_current_user_id)):
     success = await CityService.delete_city(city_id)
     if not success:
         raise HTTPException(status_code=404, detail='City does not exist')
@@ -33,10 +34,10 @@ async def delete_city(city_id: int):
 
 
 @router.get('/get_all_cities', summary="Getting all cities", response_model=list[SCityUpdDesc])
-async def gel_all_cities():
+async def gel_all_cities(user_id: int = Depends(get_current_user_id)):
     return await CityService.get_all_cities()
 
 
 @router.get('/get_cities_coordinates', summary='Get cities coordinates', response_model=List[SCityCoordinates])
-async def get_cities_coordinates(city_id: int):
+async def get_cities_coordinates(city_id: int, user_id: int = Depends(get_current_user_id)):
     return await CityService.get_cities_coordinates(city_id)

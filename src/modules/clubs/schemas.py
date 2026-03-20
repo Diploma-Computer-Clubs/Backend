@@ -17,7 +17,17 @@ class SClubCreate(BaseModel):
     latitude: float | None = None
     longitude: float | None = None
 
+class SClubChange(BaseModel):
+    id: int
+    name: str
+    address: str
+    image_url: str
+    promos: List[SPromoItem]
+    description: str
+    city_id: int
+
 class SClubMainInfo(BaseModel):
+    id: int
     name: str
     address: str
     image_url: str
@@ -25,6 +35,7 @@ class SClubMainInfo(BaseModel):
     rating: float
 
 class SClubMap(BaseModel):
+    id: int
     name: str
     image_url: str
     latitude: float
