@@ -6,15 +6,17 @@ from src.shared.configurations.config import get_auth_data
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+
 async def get_user_id_from_token(token: str, expected_type: str) -> int:
     try:
         auth_data = get_auth_data()
+
         payload = jwt.decode(token, auth_data['secret_key'], algorithms=[auth_data['algorithm']])
-    except JWTError:
-        raise HTTPException(status_code=401, detail='Token is not valid')
+    except JWTError as e:
+        raise HTTPException(status_code=401, detail=f'Token invalid: {e}')
 
     if payload.get("type") != expected_type:
-        raise HTTPException(status_code=401, detail=f"Not {expected_type} Token")
+        raise HTTPException(status_code=401, detail="Wrong token type")
 
     user_id = payload.get('sub')
     if not user_id:

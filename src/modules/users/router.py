@@ -4,21 +4,17 @@ from src.modules.users.schemas import SUser, SUserGetData, SUserGetCity, SUserPo
 from fastapi import APIRouter
 from src.modules.users.model import User
 from src.modules.users.service import UserService
-from fastapi import Response
-from src.shared.auth.jwt import set_auth_cookies
-from src.shared.dependencies.user_dependency import get_current_user_id
+from src.shared.auth.jwt import set_auth_tokens
 
 router = APIRouter(prefix='/users', tags=['Work with users'])
 
-
 @router.post("/registration", summary="Registration")
-async def register_user(user_data: SUser, response: Response):
+async def register_user(user_data: SUser):
     user = await UserService.register_new_user(user_data)
     if not user:
         raise HTTPException(status_code=409, detail='User already exists')
 
-    access, refresh = set_auth_cookies(response, user.id)
-    return {"access_token": access, "refresh_token": refresh}
+    return set_auth_tokens(user.id)
 
 
 @router.get("/find_user")
@@ -30,13 +26,12 @@ async def get_user_by_filter(phone_number: str):
 
 
 @router.patch("/reset-password")
-async def reset_password(phone: str, new_password: str, response: Response):
+async def reset_password(phone: str, new_password: str):
     user = await UserService.reset_password(phone, new_password)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    set_auth_cookies(response, user.id)
-    return {"status": "success", "message": "Password reset successful"}
+    return set_auth_tokens(user.id)
 
 
 @router.get("/me", summary="Give info about user", response_model = SUserGetData)

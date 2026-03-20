@@ -3,35 +3,32 @@ from fastapi import Depends, HTTPException
 from src.modules.auth.dependencies import get_current_user_id_by_refresh
 from src.modules.auth.schemas import SUserAuth, SUserVerify, SUserPhoneAuth
 from fastapi import APIRouter
-from fastapi import Response
 
 from src.modules.auth.service import AuthService
-from src.shared.auth.jwt import set_auth_cookies, delete_auth_cookies
+from src.shared.auth.jwt import set_auth_tokens, create_access_token, create_refresh_token
 
 router = APIRouter(prefix='/auth', tags=['Auth'])
 
 
 @router.post("/login")
-async def login_user(response: Response, user_data: SUserAuth):
+async def login_user(user_data: SUserAuth):
     user = await AuthService.login_user(user_data.phone_number, user_data.password)
     if not user:
         raise HTTPException(status_code=401, detail="Wrong login or password")
 
-    access, refresh = set_auth_cookies(response, user.id)
-    return {"access_token": access, "refresh_token": refresh}
+    access = create_access_token({"sub": str(user.id)})
+    refresh = create_refresh_token({"sub": str(user.id)})
 
-
-@router.post("/logout")
-async def logout_user(response: Response):
-    delete_auth_cookies(response)
-    return {"message": "User successfully logged out"}
+    return {
+        "access_token": access,
+        "refresh_token": refresh,
+        "token_type": "bearer"
+    }
 
 
 @router.post("/refresh")
-async def refresh_token(response: Response, user_id: int = Depends(get_current_user_id_by_refresh)):
-    # user_id уже проверен зависимостью Depends
-    access, refresh = set_auth_cookies(response, user_id)
-    return {"access_token": access, "refresh_token": refresh}
+async def refresh_token(user_id: int = Depends(get_current_user_id_by_refresh)):
+    return set_auth_tokens(user_id)
 
 
 @router.post("/verify")

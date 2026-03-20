@@ -40,6 +40,5 @@ async def get_clubs_count(city_id: int, user_id: int = Depends(get_current_user_
 async def get_main_info(club_id: int, user_id: int = Depends(get_current_user_id)):
     result = await ClubService.get_club(club_id)
     if not result:
-        raise HTTPException(status_code=404, detail=f"{club_id} club not found"
-        )
+        raise HTTPException(status_code=404, detail=f"Club {club_id} not found")
     return result

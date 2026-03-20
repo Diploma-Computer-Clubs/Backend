@@ -2,7 +2,6 @@ from typing import List
 
 from fastapi import APIRouter, HTTPException
 
-from src.modules.cities.dao import CityDAO
 from src.modules.cities.schemas import SCityAdd, SCityUpdDesc, SCityCoordinates
 from src.modules.cities.service import CityService
 

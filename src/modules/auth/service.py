@@ -1,8 +1,6 @@
 import random
-from fastapi import Response
 
 from src.modules.auth.auth import authenticate_user
-from src.shared.auth.jwt import delete_auth_cookies
 from src.shared.redis.utils import set_code, get_code, delete_code
 from src.shared.utils.sms_sender import send_sms_via_twilio
 
@@ -35,10 +33,4 @@ class AuthService:
     @classmethod
     async def refresh_token(cls, user_id: int):
         return user_id
-
-    @classmethod
-    async def logout(cls, response: Response):
-        delete_auth_cookies(response)
-
-        return {"message": "User successfully logged out"}
 
