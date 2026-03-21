@@ -21,3 +21,4 @@ class ClubDAO(BaseDAO):
             query = select(func.count(cls.model.id)).filter_by(city_id=city_id)
             result = await session.execute(query)
             return result.scalar()
+

@@ -1,3 +1,5 @@
+from typing import Optional
+
 from sqlalchemy import ForeignKey, text
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from src.shared.configurations.database import Base, str_uniq, int_pk, str_password
@@ -15,7 +17,7 @@ class User(Base):
     role: Mapped[Role] = mapped_column(default=Role.user, server_default=text("'user'"), nullable=False)
     reputation: Mapped[int] = mapped_column(server_default=text('100'))
 
-    city_id: Mapped[int] = mapped_column(ForeignKey('cities.id'), nullable=False)
+    city_id: Mapped[Optional[int]] = mapped_column(ForeignKey('cities.id', ondelete="SET NULL"), nullable=True)
     city: Mapped["City"] = relationship("City", back_populates="users")
 
     clubs: Mapped[list["Club"]] = relationship("Club", back_populates="owner")

@@ -20,13 +20,3 @@ class Booking(Base):
 
     club_id: Mapped[int] = mapped_column(ForeignKey('clubs.id'), nullable=False)
     club: Mapped["Club"] = relationship("Club", back_populates="bookings")
-
-    def to_dict(self):
-        return {
-            "id": self.id,
-            "start_time": self.start_time,
-            "end_time": self.end_time,
-            "total_price": self.total_price,
-            "user_id": self.user_id,
-            "computer_id": self.computer_id,
-        }

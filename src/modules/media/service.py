@@ -18,4 +18,5 @@ class MediaService:
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
 
-        return f"/{file_path}"
+        unix_path = file_path.replace("\\", "/")
+        return f"/{unix_path}"

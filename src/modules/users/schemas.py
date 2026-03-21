@@ -1,5 +1,5 @@
 from pydantic import Field, ConfigDict, field_validator, BaseModel
-from src.shared.schemas.users import SUserBase, SUserPassword, Role
+from src.shared.schemas.schemas import SUserBase, SUserPassword, Role
 
 class SUser(SUserBase, SUserPassword):
     model_config = ConfigDict(from_attributes=True)

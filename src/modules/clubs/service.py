@@ -10,8 +10,10 @@ class ClubService:
 
     @classmethod
     async def create_club(cls, club_info: SClubCreate):
-        lat, lon = await CoordinatesService.get_coordinates_2gis(club_info.address)
+        address = club_info.city_name + " , " +club_info.address
+        lat, lon = await CoordinatesService.get_coordinates_2gis(address)
         club_data = club_info.model_dump()
+        club_data.pop("city_name", None)
         club_data["latitude"] = lat
         club_data["longitude"] = lon
         try:
@@ -21,7 +23,7 @@ class ClubService:
         except IntegrityError:
             raise HTTPException(
                 status_code=409,
-                detail=f"Club '{club_info.name}' already exists or invalid data",
+                detail=f"'{club_info.name}' invalid data",
             )
         except Exception:
             raise HTTPException(
@@ -53,5 +55,5 @@ class ClubService:
         return await ClubDAO.delete(id=club_id)
 
     @classmethod
-    async def upadate_clubs(cls, club_info: SClubChange):
+    async def update_club(cls, club_info: SClubChange):
         return await ClubDAO.update(id=club_info.id, **club_info.model_dump())

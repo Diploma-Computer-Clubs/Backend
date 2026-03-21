@@ -34,7 +34,7 @@ async def delete_city(city_id: int, user_id: int = Depends(get_current_user_id))
 
 
 @router.get('/get_all_cities', summary="Getting all cities", response_model=list[SCityUpdDesc])
-async def gel_all_cities(user_id: int = Depends(get_current_user_id)):
+async def gel_all_cities():
     return await CityService.get_all_cities()
 
 

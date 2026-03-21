@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import select, insert
 from sqlalchemy.exc import SQLAlchemyError
 
 from src.shared.configurations.database import async_session_maker
@@ -47,6 +47,14 @@ class BaseDAO:
                     await session.rollback()
                     raise e
                 return new_instance
+
+    @classmethod
+    async def add_list(cls, data: list[dict]):
+        async with async_session_maker() as session:
+            query = insert(cls.model).values(data).returning(cls.model)
+            result = await session.execute(query)
+            await session.commit()
+            return result.scalars().all()
 
     @classmethod
     async def update(cls, filter_by, **values):

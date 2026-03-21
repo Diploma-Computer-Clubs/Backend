@@ -1,7 +1,7 @@
 from sqlalchemy import ForeignKey
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship, Mapped, mapped_column
-from src.shared.configurations.database import Base, int_pk, str_uniq, float_bull_true
+from src.shared.configurations.database import Base, int_pk, str_uniq, float_bull_true, str_null_true
 
 
 class Club(Base):
@@ -9,6 +9,7 @@ class Club(Base):
     name: Mapped[str]
     address: Mapped[str_uniq]
     image_url: Mapped[str]
+    image_price_url: Mapped[str_null_true]
     promos: Mapped[dict | list] = mapped_column(JSONB, nullable=True, default={})
     description: Mapped[str]
     rating: Mapped[float]

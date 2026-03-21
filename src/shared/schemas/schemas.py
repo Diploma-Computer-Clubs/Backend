@@ -6,6 +6,13 @@ class Role(str, Enum):
     user = "user"
     admin = "admin"
 
+class ZoneName(str, Enum):
+    STANDARD = "Standard"
+    VIP = "VIP"
+    BOOTCAMP = "Bootcamp"
+    STREAMING = "Streaming"
+
+
 class SUserBase(BaseModel):
     phone_number: str = Field(..., description="Phone number in int-nal format, starts with '+'")
 
