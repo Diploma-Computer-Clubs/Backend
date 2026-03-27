@@ -24,3 +24,9 @@ class SUserGetCity(BaseModel):
 
 class SUserPostData(SUserGetCity):
     full_name: str
+
+class SUserVerify(SUserBase):
+    code: str = Field(..., description="verifying code")
+
+class SUserPhoneAuth(SUserBase):
+    pass

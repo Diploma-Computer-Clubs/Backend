@@ -28,3 +28,11 @@ def create_refresh_token(data: dict) -> str:
     to_encode.update({"exp": expire, "type": "refresh"})
     auth_data = get_auth_data()
     return jwt.encode(to_encode, auth_data['secret_key'], algorithm=auth_data['algorithm'])
+
+
+def create_reset_password_token(data: dict) -> str:
+    to_encode = data.copy()
+    expire = datetime.now(timezone.utc) + timedelta(minutes=10)
+    to_encode.update({"exp": expire, "type": "reset_password"})
+    auth_data = get_auth_data()
+    return jwt.encode(to_encode, auth_data['secret_key'], auth_data['algorithm'])

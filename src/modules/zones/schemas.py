@@ -13,6 +13,7 @@ class SZoneCreate(BaseModel):
     club_id: int = Field(..., description="Zone club ID")
 
 class SZoneGet(BaseModel):
+    id: int = Field(..., description="Zone ID")
     name: ZoneName = Field(..., description="Zone name")
     cost: int = Field(..., description="Zone cost")
     cpu: str = Field(..., description="Zone cpu")

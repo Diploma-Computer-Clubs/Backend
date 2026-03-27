@@ -1,14 +1,15 @@
-from sqlalchemy import ForeignKey
+from sqlalchemy import ForeignKey, text
 from sqlalchemy.orm import relationship, Mapped, mapped_column
-from src.shared.configurations.database import Base, int_pk
+from src.shared.configurations.database import Base, int_pk, bool_true
+
 
 class Computer(Base):
     id: Mapped[int_pk]
     number: Mapped[int]
     specification: Mapped[str]
-    is_Active: Mapped[bool]
+    is_Active: Mapped[bool_true]
 
-    zone_id: Mapped[int] = mapped_column(ForeignKey('zones.id'), nullable=False)
+    zone_id: Mapped[int] = mapped_column(ForeignKey('zones.id', ondelete="CASCADE"), nullable=True)
     zone: Mapped["Zone"] = relationship("Zone", back_populates="computers")
 
     bookings: Mapped[list["Booking"]] = relationship("Booking", back_populates="computer")

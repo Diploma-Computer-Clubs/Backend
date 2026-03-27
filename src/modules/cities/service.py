@@ -33,9 +33,13 @@ class CityService:
 
     @classmethod
     async def update_city(cls, city: SCityUpdDesc):
+        lat, lon = await CoordinatesService.get_coordinates_2gis(city.city)
+        city_data = city.model_dump()
+        city_data["latitude"] = lat
+        city_data["longitude"] = lon
         result = await CityDAO.update(
             filter_by={'id': city.id},
-            city=city.city,
+            **city_data,
             updated_at=func.now()
         )
         return result > 0

@@ -13,12 +13,14 @@ class Zone(Base):
     ssd: Mapped[str_null_true]
     monitor: Mapped[str_null_true]
 
-    club_id: Mapped[int] = mapped_column(ForeignKey('clubs.id'), nullable=False)
+    club_id: Mapped[int] = mapped_column(ForeignKey('clubs.id', ondelete="CASCADE"), nullable=True)
     club: Mapped["Club"] = relationship("Club", back_populates="zones")
 
-    computers: Mapped[list["Computer"]] = relationship("Computer", back_populates="zone")
+    computers: Mapped[list["Computer"]] = relationship("Computer", back_populates="zone", cascade="all, delete-orphan", passive_deletes=True)
 
-    bookings: Mapped[list["Booking"]] = relationship("Booking", back_populates="zone")
+    bookings: Mapped[list["Booking"]] = relationship("Booking", back_populates="zone", cascade="all, delete-orphan", passive_deletes=True)
+
+    packages: Mapped[list["ZonePackage"]] = relationship("ZonePackage", back_populates="zone", cascade="all, delete-orphan", passive_deletes=True)
 
     def to_dict(self):
         return {

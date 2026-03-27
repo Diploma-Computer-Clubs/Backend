@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncAttrs
 from sqlalchemy.orm import DeclarativeBase, declared_attr, Mapped, mapped_column
-from sqlalchemy import func, String
+from sqlalchemy import func, String, text
 from src.shared.configurations.config import get_db_url
 from datetime import datetime
 from typing import Annotated
@@ -14,6 +14,7 @@ str_uniq = Annotated[str, mapped_column(unique=True, nullable=False)]
 str_null_true = Annotated[str, mapped_column(nullable=True)]
 str_password = Annotated[str, mapped_column(String(128), nullable=False)]
 float_bull_true = Annotated[float, mapped_column(nullable=True)]
+bool_true = Annotated[bool, mapped_column(default=True, server_default=text('true'))]
 
 class Base(AsyncAttrs, DeclarativeBase):
     __abstract__ = True

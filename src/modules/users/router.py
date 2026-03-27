@@ -1,11 +1,11 @@
 from fastapi import Depends, HTTPException
 from src.modules.users.dependencies import get_current_user
-from src.modules.users.schemas import SUser, SUserGetData, SUserGetCity, SUserPostData
+from src.modules.users.schemas import SUser, SUserGetData, SUserGetCity, SUserPostData, SUserVerify, SUserPhoneAuth
 from fastapi import APIRouter
 from src.modules.users.model import User
 from src.modules.users.service import UserService
-from src.shared.auth.jwt import set_auth_tokens
-from src.shared.dependencies.user_dependency import get_current_user_id
+from src.shared.auth.jwt import set_auth_tokens, create_reset_password_token
+from src.shared.dependencies.user_dependency import get_current_user_id, get_user_id_for_reset
 
 router = APIRouter(prefix='/users', tags=['Work with users'])
 
@@ -26,13 +26,36 @@ async def get_user_by_filter(phone_number: str):
     return {"message": "User found", "user": user.phone_number}
 
 
-@router.patch("/reset-password")
-async def reset_password(phone: str, new_password: str):
-    user = await UserService.reset_password(phone, new_password)
+@router.post("/send-sms", summary="Sending sms")
+async def send_sms(phone: SUserPhoneAuth):
+    result = await UserService.request_verification(phone=phone.phone_number)
+    if not result:
+        raise HTTPException(status_code=400, detail="Invalid phone")
+    return {"status": "sent"}
+
+
+@router.post("/verify")
+async def verify(user_data: SUserVerify):
+    is_verified = await UserService.verify_phone_code(user_data.phone_number, user_data.code)
+    if not is_verified:
+        raise HTTPException(status_code=400, detail="Invalid code")
+
+    user = await UserService.find_user_by_phone_number(user_data.phone_number)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    return set_auth_tokens(user.id)
+    reset_token = create_reset_password_token({"sub": str(user.id)})
+
+    return {"status": "verified", "reset_token": reset_token}
+
+
+@router.patch("/reset-password")
+async def reset_password(
+        new_password: str,user_id: int = Depends(get_user_id_for_reset)):
+    success = await UserService.reset_password_by_id(user_id, new_password)
+    if not success:
+        raise HTTPException(status_code=404, detail="User not found or error updating")
+    return {"status": "success", "message": "Password updated. Please log in."}
 
 
 @router.get("/me", summary="Give info about user", response_model = SUserGetData)

@@ -23,3 +23,7 @@ class ComputerService:
                 status_code=500,
                 detail="Invalid error"
             )
+
+    @classmethod
+    async def get_computers(cls, zone_id: int):
+        return await ComputerDAO.find_all(zone_id=zone_id)

@@ -1,8 +1,12 @@
+import random
+
 from sqlalchemy import func
 from src.modules.users.dao import UserDAO
 from src.modules.users.model import User
 from src.modules.users.schemas import SUser, SUserPostData
+from src.shared.redis.utils import get_code, delete_code, set_code
 from src.shared.utils.auth_utils import get_password_hash
+from src.shared.utils.sms_sender import send_sms_via_twilio
 
 
 class UserService:
@@ -19,19 +23,11 @@ class UserService:
         return new_user
 
     @classmethod
-    async def reset_password(cls, phone: str, new_password: str):
+    async def reset_password_by_id(cls, user_id: int, new_password: str):
         hashed_password = get_password_hash(new_password)
 
-        updated_count = await UserDAO.update(
-            filter_by={"phone_number": phone},
-            password=hashed_password,
-            updated_at=func.now()
-        )
-
-        if updated_count == 0:
-            return None
-
-        return await UserDAO.find_one_or_none(phone_number=phone)
+        result = await UserDAO.update(filter_by={"id": user_id}, password=hashed_password, updated_at=func.now())
+        return result > 0
 
     @classmethod
     async def find_user_by_phone_number(cls, phone_number: str) -> SUser | None:
@@ -50,3 +46,20 @@ class UserService:
     @classmethod
     async def delete_user(cls, user_id: int):
         return await UserDAO.delete(id=user_id)
+
+    @classmethod
+    async def request_verification(cls, phone: str):
+        code = str(random.randint(100000, 999999))
+        await set_code(phone, code)
+        print(code)
+        sent = await send_sms_via_twilio(phone, f"Code: {code}")
+        return sent
+
+    @classmethod
+    async def verify_phone_code(cls, phone: str, code: str):
+        saved_code = await get_code(phone)
+        if not saved_code or saved_code != code:
+            return False
+
+        await delete_code(phone)
+        return True

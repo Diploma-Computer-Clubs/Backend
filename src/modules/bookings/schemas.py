@@ -1,13 +1,12 @@
 from datetime import datetime, timedelta
 
-from pydantic import BaseModel, model_validator, ConfigDict, Field
+from pydantic import BaseModel, model_validator, ConfigDict
 
 
 class SBookingCreate(BaseModel):
     start_time: datetime
     end_time: datetime
     total_price: int
-    user_id: int
     computer_id: int
     zone_id: int
     club_id: int
@@ -37,7 +36,7 @@ class SComputerInfo(BaseModel):
     number: int
 
 
-class SMyBookingView(BaseModel):
+class SBookingView(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int

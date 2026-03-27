@@ -24,7 +24,7 @@ class BookingDAO(BaseDAO):
             return result.scalars().first()
 
     @classmethod
-    async def get_active_user_bookings(cls, user_id: int):
+    async def get_active_user_booking(cls, user_id: int):
         async with async_session_maker() as session:
             now = datetime.now()
 

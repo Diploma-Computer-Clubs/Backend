@@ -1,7 +1,7 @@
 from fastapi import Depends, HTTPException
 
 from src.modules.auth.dependencies import get_current_user_id_by_refresh
-from src.modules.auth.schemas import SUserAuth, SUserVerify, SUserPhoneAuth
+from src.modules.auth.schemas import SUserAuth
 from fastapi import APIRouter
 
 from src.modules.auth.service import AuthService
@@ -29,19 +29,3 @@ async def login_user(user_data: SUserAuth):
 @router.post("/refresh")
 async def refresh_token(user_id: int = Depends(get_current_user_id_by_refresh)):
     return set_auth_tokens(user_id)
-
-
-@router.post("/verify")
-async def verify(user_data: SUserVerify):
-    is_verified = await AuthService.verify_phone_code(user_data.phone_number, user_data.code)
-    if not is_verified:
-        raise HTTPException(status_code=400, detail="Invalid code")
-    return {"status": "verified"}
-
-
-@router.post("/send-sms", summary="Sending sms")
-async def send_sms(phone: SUserPhoneAuth):
-    result = await AuthService.request_verification(phone=phone.phone_number)
-    if not result:
-        raise HTTPException(status_code=400, detail="Invalid phone")
-    return {"status": "sent"}

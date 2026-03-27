@@ -10,6 +10,7 @@ from src.modules.media.router import router as media_router
 from src.modules.zones.router import router as zones_router
 from src.modules.computers.router import router as computers_router
 from src.modules.bookings.router import router as bookings_router
+from src.modules.pricing.router import router as pricing_router
 from fastapi.staticfiles import StaticFiles
 from src.shared.models.model import *
 
@@ -27,6 +28,7 @@ app.include_router(media_router)
 app.include_router(zones_router)
 app.include_router(computers_router)
 app.include_router(bookings_router)
+app.include_router(pricing_router)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 

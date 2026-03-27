@@ -13,3 +13,7 @@ async def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depend
     token = credentials.credentials
 
     return await get_user_id_from_token(token, "access")
+
+async def get_user_id_for_reset(credentials: HTTPAuthorizationCredentials = Depends(security)) -> int:
+    token = credentials.credentials
+    return await get_user_id_from_token(token, "reset_password")

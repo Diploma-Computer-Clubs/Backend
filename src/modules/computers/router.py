@@ -11,3 +11,7 @@ router = APIRouter(prefix="/computers", tags=["Work with computers"])
 @router.post('/create_computers', summary='Create computers')
 async def create_computers(computers: List[SComputersCreate], user_id: int = Depends(get_current_user_id)):
     return await ComputerService.create_computers(computers)
+
+@router.get('/get_computers', summary='Get computers')
+async def get_computers(zone_id: int, user_id: int = Depends(get_current_user_id)):
+    return await ComputerService.get_computers(zone_id)
