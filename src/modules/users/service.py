@@ -1,13 +1,14 @@
+import logging
 import random
 
 from sqlalchemy import func
 from src.modules.users.dao import UserDAO
-from src.modules.users.model import User
 from src.modules.users.schemas import SUser, SUserPostData
 from src.shared.redis.utils import get_code, delete_code, set_code
 from src.shared.utils.auth_utils import get_password_hash
 from src.shared.utils.sms_sender import send_sms_via_twilio
 
+logger = logging.getLogger(__name__)
 
 class UserService:
     @classmethod
@@ -15,17 +16,13 @@ class UserService:
         existing_user = await UserDAO.find_one_or_none(phone_number=user_data.phone_number)
         if existing_user:
             return None
-
         user_dict = user_data.model_dump()
         user_dict['password'] = get_password_hash(user_data.password)
-
-        new_user = await UserDAO.add(**user_dict)
-        return new_user
+        return await UserDAO.add(**user_dict)
 
     @classmethod
     async def reset_password_by_id(cls, user_id: int, new_password: str):
         hashed_password = get_password_hash(new_password)
-
         result = await UserDAO.update(filter_by={"id": user_id}, password=hashed_password, updated_at=func.now())
         return result > 0
 
@@ -48,18 +45,22 @@ class UserService:
         return await UserDAO.delete(id=user_id)
 
     @classmethod
-    async def request_verification(cls, phone: str):
+    async def request_verification(cls, phone: str) -> bool:
         code = str(random.randint(100000, 999999))
         await set_code(phone, code)
-        print(code)
-        sent = await send_sms_via_twilio(phone, f"Code: {code}")
-        return sent
+
+        logger.debug(f"VERIFICATION CODE FOR {phone}: {code}")
+
+        try:
+            return await send_sms_via_twilio(phone, f"Your code: {code}")
+        except Exception as e:
+            logger.error(f"Failed to send SMS to {phone}: {e}")
+            return False
 
     @classmethod
     async def verify_phone_code(cls, phone: str, code: str):
         saved_code = await get_code(phone)
         if not saved_code or saved_code != code:
             return False
-
         await delete_code(phone)
         return True

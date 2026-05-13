@@ -1,7 +1,6 @@
 from datetime import datetime, timedelta
 from typing import List
-
-from fastapi import HTTPException
+from fastapi import HTTPException, status
 
 from src.modules.bookings.dao import BookingDAO
 from src.modules.bookings.schemas import SBookingCreate
@@ -12,35 +11,19 @@ class BookingService:
 
     @classmethod
     async def create_booking(cls, bookings_info: List[SBookingCreate], user_id: int):
-        existing_bookings = await BookingDAO.get_active_user_booking(user_id)
-        if existing_bookings:
-            raise HTTPException(
-                status_code=400,
-                detail="You already have an active user booking",
-            )
+        existing = await BookingDAO.get_active_user_booking(user_id)
+        if existing:
+            raise HTTPException(status_code=400, detail="You already have an active booking")
 
         now = datetime.now()
         prepared_bookings = []
 
         for info in bookings_info:
             if info.start_time < now + timedelta(minutes=30):
-                raise HTTPException(
-                    status_code=400,
-                    detail="Booking have to be 30 minutes ahead",
-                )
+                raise HTTPException(status_code=400, detail="Booking must be at least 30 min ahead")
 
-            duration = info.end_time - info.start_time
-            if duration > timedelta(hours=12):
-                raise HTTPException(
-                    status_code=400,
-                    detail="Maximum booking duration is 12 hours",
-                )
-
-            if info.end_time > now + timedelta(hours=36):
-                raise HTTPException(
-                    status_code=400,
-                    detail="Booking have to be less then 36 hours ahead",
-                )
+            if (info.end_time - info.start_time) > timedelta(hours=12):
+                raise HTTPException(status_code=400, detail="Max duration is 12 hours")
 
             computer = await ComputerDAO.find_computer_in_club(
                 computer_id=info.computer_id,
@@ -48,7 +31,7 @@ class BookingService:
                 club_id=info.club_id
             )
             if not computer:
-                raise HTTPException(status_code=404, detail="Computer not found")
+                raise HTTPException(status_code=404, detail="Computer not found in this zone/club")
 
             is_occupied = await BookingDAO.find_one_or_none_collision(
                 computer_id=info.computer_id,
@@ -56,12 +39,14 @@ class BookingService:
                 end_time=info.end_time
             )
             if is_occupied:
-                raise HTTPException(status_code=409, detail="Time is occupied")
+                raise HTTPException(status_code=409, detail="This time slot is already occupied")
 
             data = info.model_dump()
-            data["user_id"] = user_id
-            data["start_time"] = data["start_time"].replace(tzinfo=None)
-            data["end_time"] = data["end_time"].replace(tzinfo=None)
+            data.update({
+                "user_id": user_id,
+                "start_time": info.start_time.replace(tzinfo=None),
+                "end_time": info.end_time.replace(tzinfo=None)
+            })
             prepared_bookings.append(data)
 
         return await BookingDAO.add_list(prepared_bookings)
@@ -75,14 +60,9 @@ class BookingService:
         booking = await BookingDAO.find_one_or_none(id=booking_id)
 
         if not booking:
-            raise HTTPException(
-                status_code=404,
-                detail="Booking not found"
-            )
+            raise HTTPException(status_code=404, detail="Booking not found")
+
         if booking.user_id != user_id:
-            raise HTTPException(
-                status_code=403,
-                detail="You don't have permission to delete this booking"
-            )
+            raise HTTPException(status_code=403, detail="Not allowed to delete others' bookings")
 
         return await BookingDAO.delete(id=booking_id)

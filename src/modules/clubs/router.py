@@ -1,67 +1,87 @@
+from datetime import datetime
 from typing import List
 
 from fastapi import APIRouter, HTTPException, Depends
-from src.modules.clubs.schemas import SClubCreate, SClubMainInfo, SClubMap, SClubChange
+
+from src.modules.clubs.schemas import SClubCreate, SClubMainInfo, SClubMap, SClubChange, SZoneMapResponse, \
+    WSPeriodPayload
 from src.modules.clubs.service import ClubService
+from src.shared.dependencies.dependencies import RoleChecker
 from src.shared.dependencies.user_dependency import get_current_user_id
 
-router = APIRouter(prefix='/clubs', tags=['Work with clubs'], dependencies=[Depends(get_current_user_id)])
+
+import json
+import asyncio
+from datetime import datetime, timedelta
+from fastapi import APIRouter, WebSocket, WebSocketException, status, Depends
+from typing import List
+
+from src.shared.dependencies.websocket_dependency import get_ws_club_admin
+
+router = APIRouter(prefix='/clubs', tags=['Clubs Management'])
 
 
-@router.post('/register', summary='Register a new club')
+@router.post("", summary="Register new club")
 async def register_club(club_info: SClubCreate, user_id: int = Depends(get_current_user_id)):
     result = await ClubService.create_club(club_info, user_id)
     if not result:
         raise HTTPException(status_code=400, detail="Error adding a club")
     return {"message": "Club successfully added"}
 
+@router.patch("/{club_id}", summary="Update club info")
+async def update_club(club_info: SClubChange, user_id: int = Depends(get_current_user_id)):
+    return await ClubService.update_club(club_info)
 
-@router.get('/get_clubs_map', summary='Get clubs on map', response_model=List[SClubMap])
+@router.delete("/{club_id}", summary="Delete club")
+async def delete_club(club_id: int, user_id: int = Depends(get_current_user_id)):
+    return await ClubService.delete_clubs(club_id)
+
+
+@router.get("/map", summary="Get clubs for map view", response_model=List[SClubMap])
 async def get_clubs_map(city_id: int):
     return await ClubService.get_clubs_by_city(city_id)
 
-
-@router.get('/get_clubs_in_city', summary='Get main info about clubs in city', response_model=list[SClubMainInfo])
+@router.get("/search", summary="Get clubs list by city", response_model=list[SClubMainInfo])
 async def get_main_info(city_id: int):
     result = await ClubService.get_clubs_by_city(city_id)
     if not result:
-        raise HTTPException(status_code=404, detail=f"in city with ID {city_id} clubs not found"
-        )
+        raise HTTPException(status_code=404, detail=f"No clubs found in city {city_id}")
     return result
 
-
-@router.get('/get_clubs_count', summary='Get count of clubs in city')
+@router.get("/count", summary="Get total clubs count in city")
 async def get_clubs_count(city_id: int):
     count = await ClubService.get_clubs_count(city_id)
     return {"city_id": city_id, "total_clubs": count}
 
 
-@router.get('/get_club_info', summary='Get main info about club', response_model=SClubMainInfo)
-async def get_main_info(club_id: int):
+@router.get("/{club_id}", summary="Get detailed club info", response_model=SClubMainInfo)
+async def get_club_info(club_id: int):
     result = await ClubService.get_club(club_id)
     if not result:
         raise HTTPException(status_code=404, detail=f"Club {club_id} not found")
     return result
 
-
-@router.delete('/delete_club', summary='Delete club')
-async def delete_club(club_id: int, user_id: int = Depends(get_current_user_id)):
-    return await ClubService.delete_clubs(club_id, user_id)
-
-
-@router.patch('/update_club', summary='Update club')
-async def update_club(club_info: SClubChange, user_id: int = Depends(get_current_user_id)):
-    return await ClubService.update_club(club_info, user_id)
-
-
-@router.get('/get_min_price', summary='Get minimum zone price in club')
+@router.get("/{club_id}/min-price", summary="Get minimum zone price")
 async def get_min_price(club_id: int):
     min_price = await ClubService.get_club_min_price(club_id)
-
     if min_price is None:
         raise HTTPException(status_code=404, detail="Club not found")
+    return {"club_id": club_id, "min_price": min_price}
 
-    return {
-        "club_id": club_id,
-        "min_price": min_price
-    }
+@router.get("/{club_id}/availability", summary="Get computers availability map", response_model=List[SZoneMapResponse])
+async def get_club_availability(club_id: int, start_time: datetime, end_time: datetime):
+    zones = await ClubService.get_club_map(club_id, start_time, end_time)
+    if not zones:
+        raise HTTPException(404, detail="Zones not found for this club")
+    return zones
+
+#вебсокет
+@router.websocket("/{club_id}/availability/ws")
+async def ws_club_availability(websocket: WebSocket, club_id: int, token: str):
+    await websocket.accept()
+    try:
+        await get_ws_club_admin(websocket, club_id, token)
+    except WebSocketException as e:
+        return await websocket.close(code=e.code, reason=e.reason)
+
+    await ClubService.handle_admin_websocket(websocket, club_id)

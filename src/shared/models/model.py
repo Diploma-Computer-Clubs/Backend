@@ -5,3 +5,4 @@ from src.modules.zones.model import Zone
 from src.modules.computers.model import Computer
 from src.modules.bookings.model import Booking
 from src.modules.pricing.model import ZonePackage
+from src.modules.club_staff.model import ClubStaff

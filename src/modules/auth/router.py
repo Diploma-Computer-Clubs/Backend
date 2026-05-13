@@ -7,7 +7,7 @@ from fastapi import APIRouter
 from src.modules.auth.service import AuthService
 from src.shared.auth.jwt import set_auth_tokens, create_access_token, create_refresh_token
 
-router = APIRouter(prefix='/auth', tags=['Auth'])
+router = APIRouter(prefix='/auth', tags=['Authentication'])
 
 
 @router.post("/login")
@@ -26,6 +26,6 @@ async def login_user(user_data: SUserAuth):
     }
 
 
-@router.post("/refresh")
+@router.post("/refresh", summary='Refresh access token')
 async def refresh_token(user_id: int = Depends(get_current_user_id_by_refresh)):
     return set_auth_tokens(user_id)

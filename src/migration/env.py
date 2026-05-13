@@ -22,6 +22,7 @@ config = context.config
 #Мой код
 
 from src.shared.models.model import *
+from src.modules.club_staff.model import ClubStaff
 
 #Это объект конфигурации Alembic (alembic.config.Config), который используется для управления параметрами и настройками миграций.
 config.set_main_option("sqlalchemy.url", DATABASE_URL)

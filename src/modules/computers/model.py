@@ -1,3 +1,5 @@
+from typing import Optional
+
 from sqlalchemy import ForeignKey, text
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from src.shared.configurations.database import Base, int_pk, bool_true
@@ -7,7 +9,9 @@ class Computer(Base):
     id: Mapped[int_pk]
     number: Mapped[int]
     specification: Mapped[str]
-    is_Active: Mapped[bool_true]
+    is_active: Mapped[bool_true]
+    x: Mapped[Optional[float]] = mapped_column(nullable=True)
+    y: Mapped[Optional[float]] = mapped_column(nullable=True)
 
     zone_id: Mapped[int] = mapped_column(ForeignKey('zones.id', ondelete="CASCADE"), nullable=True)
     zone: Mapped["Zone"] = relationship("Zone", back_populates="computers")
@@ -19,6 +23,8 @@ class Computer(Base):
             "id": self.id,
             "number": self.number,
             "specification": self.specification,
-            "is_Active": self.is_Active,
+            "is_active": self.is_active,
+            "x": self.x,
+            "y": self.y,
             "zone_id": self.zone_id,
         }

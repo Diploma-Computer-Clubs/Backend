@@ -1,6 +1,10 @@
-from sqlalchemy import select, func
-from sqlalchemy.orm import joinedload
+from datetime import datetime
 
+from sqlalchemy import select, func
+from sqlalchemy.orm import selectinload, joinedload
+
+from src.modules.bookings.model import Booking
+from src.modules.computers.model import Computer
 from src.modules.zones.model import Zone
 from src.shared.configurations.database import async_session_maker
 from src.shared.dao.base import BaseDAO
@@ -10,18 +14,12 @@ class ClubDAO(BaseDAO):
     model = Club
 
     @classmethod
-    async def find_full_data(cls, city_id: int):
-        async with async_session_maker() as session:
-            query = select(cls.model).options(joinedload(cls.model.city)).filter_by(city_id=city_id)
-            result = await session.execute(query)
-            return result.scalars().all()
+    async def get_club_with_zones(cls, club_id: int):
+        return await cls.find_one_or_none(joinedload(cls.model.zones), id=club_id)
 
     @classmethod
-    async def count_by_city(cls, city_id: int):
-        async with async_session_maker() as session:
-            query = select(func.count(cls.model.id)).filter_by(city_id=city_id)
-            result = await session.execute(query)
-            return result.scalar()
+    async def find_full_data(cls, city_id: int):
+        return await cls.find_all(joinedload(cls.model.city), city_id=city_id)
 
     @classmethod
     async def get_min_price_by_club(cls, club_id: int):
@@ -32,6 +30,25 @@ class ClubDAO(BaseDAO):
                 .join(Zone, cls.model.id == Zone.club_id)
                 .where(cls.model.id == club_id)
             )
-
             result = await session.execute(query)
             return result.scalar()
+
+    @classmethod
+    async def get_zones_with_computers_status(cls, club_id: int, start_time: datetime, end_time: datetime):
+        start_time = start_time.replace(tzinfo=None)
+        end_time = end_time.replace(tzinfo=None)
+
+        async with async_session_maker() as session:
+            query = (
+                select(Zone)
+                .filter_by(club_id=club_id)
+                .options(
+                    selectinload(Zone.computers)
+                    .selectinload(Computer.bookings.and_(
+                        Booking.start_time < end_time,
+                        Booking.end_time > start_time
+                    )).joinedload(Booking.user)
+                )
+            )
+            result = await session.execute(query)
+            return result.unique().scalars().all()

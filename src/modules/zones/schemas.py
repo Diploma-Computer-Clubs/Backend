@@ -1,3 +1,5 @@
+from typing import Optional
+
 from pydantic import Field, BaseModel
 from src.shared.schemas.schemas import ZoneName
 
@@ -9,6 +11,8 @@ class SZoneCreate(BaseModel):
     gpu: str = Field(..., description="Zone gpu")
     ram: str = Field(..., description="Zone ram")
     ssd: str = Field(..., description="Zone ssd")
+    x: Optional[float] = None
+    y: Optional[float] = None
     monitor: str = Field(..., description="Zone monitor")
     club_id: int = Field(..., description="Zone club ID")
 
@@ -20,4 +24,6 @@ class SZoneGet(BaseModel):
     gpu: str = Field(..., description="Zone gpu")
     ram: str = Field(..., description="Zone ram")
     ssd: str = Field(..., description="Zone ssd")
+    x: Optional[float] = None
+    y: Optional[float] = None
     monitor: str = Field(..., description="Zone monitor")

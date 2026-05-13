@@ -47,3 +47,4 @@ class SBookingView(BaseModel):
     club: SClubInfo
     zone: SZoneInfo
     computer: SComputerInfo
+

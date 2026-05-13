@@ -1,6 +1,9 @@
 import redis
 from fastapi import FastAPI
+from sqlalchemy.exc import SQLAlchemyError
 from starlette.middleware.cors import CORSMiddleware
+
+from src.exception_handlers import redis_connection_error_handler, sqlalchemy_error_handler
 
 from src.modules.users.router import router as router_users
 from src.modules.auth.router import router as router_auth
@@ -11,7 +14,9 @@ from src.modules.zones.router import router as zones_router
 from src.modules.computers.router import router as computers_router
 from src.modules.bookings.router import router as bookings_router
 from src.modules.pricing.router import router as pricing_router
+from src.modules.club_staff.router import router as clubs_staff_router
 from fastapi.staticfiles import StaticFiles
+
 from src.shared.models.model import *
 
 app = FastAPI()
@@ -29,7 +34,11 @@ app.include_router(zones_router)
 app.include_router(computers_router)
 app.include_router(bookings_router)
 app.include_router(pricing_router)
+app.include_router(clubs_staff_router)
 app.mount("/static", StaticFiles(directory="static"), name="static")
+
+app.add_exception_handler(redis.exceptions.ConnectionError, redis_connection_error_handler)
+app.add_exception_handler(SQLAlchemyError, sqlalchemy_error_handler)
 
 
 

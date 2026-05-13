@@ -1,22 +1,24 @@
-import os
 import uuid
 import shutil
-from fastapi import UploadFile
-
+from pathlib import Path
+from fastapi import UploadFile, HTTPException
 
 class MediaService:
-    UPLOAD_DIR = "static/clubs"
+    UPLOAD_DIR = Path("static/clubs")
 
     @classmethod
     async def save_image(cls, file: UploadFile) -> str:
-        os.makedirs(cls.UPLOAD_DIR, exist_ok=True)
+        cls.UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
-        file_extension = file.filename.split(".")[-1]
-        unique_filename = f"{uuid.uuid4()}.{file_extension}"
-        file_path = os.path.join(cls.UPLOAD_DIR, unique_filename)
+        extension = file.filename.split(".")[-1].lower()
+        if extension not in ["jpg", "jpeg", "png", "webp"]:
+            raise HTTPException(status_code=400, detail="Invalid file extension")
 
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
+        unique_filename = f"{uuid.uuid4()}.{extension}"
+        file_path = cls.UPLOAD_DIR / unique_filename
 
-        unix_path = file_path.replace("\\", "/")
-        return f"/{unix_path}"
+        with file_path.open("wb") as buffer:
+            content = await file.read()
+            buffer.write(content)
+
+        return f"/{file_path.as_posix()}"

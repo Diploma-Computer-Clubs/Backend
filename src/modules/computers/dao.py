@@ -1,5 +1,4 @@
 from sqlalchemy import select
-from sqlalchemy.orm import joinedload
 
 from src.modules.zones.model import Zone
 from src.shared.configurations.database import async_session_maker

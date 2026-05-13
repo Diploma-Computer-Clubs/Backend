@@ -1,3 +1,5 @@
+from typing import Optional
+
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from src.shared.configurations.database import Base, int_pk, str_null_true
@@ -12,6 +14,8 @@ class Zone(Base):
     ram: Mapped[str_null_true]
     ssd: Mapped[str_null_true]
     monitor: Mapped[str_null_true]
+    x: Mapped[Optional[float]] = mapped_column(nullable=True)
+    y: Mapped[Optional[float]] = mapped_column(nullable=True)
 
     club_id: Mapped[int] = mapped_column(ForeignKey('clubs.id', ondelete="CASCADE"), nullable=True)
     club: Mapped["Club"] = relationship("Club", back_populates="zones")

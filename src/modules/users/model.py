@@ -24,14 +24,5 @@ class User(Base):
 
     bookings: Mapped[list["Booking"]] = relationship("Booking", back_populates="user")
 
-    def to_dict(self):
-        return {
-            "id": self.id,
-            "phone_number": self.phone_number,
-            "full_name": self.full_name,
-            "reputation": self.reputation,
-            "password": self.password_hash,
-            "city_id": self.city_id,
-            "role": self.role,
+    managed_clubs: Mapped[list["ClubStaff"]] = relationship("ClubStaff", back_populates="user")
 
-        }

@@ -26,3 +26,6 @@ class Club(Base):
     zones: Mapped[list["Zone"]] = relationship("Zone", back_populates="club", cascade="all, delete-orphan", passive_deletes=True)
 
     bookings: Mapped[list["Booking"]] = relationship("Booking", back_populates="club")
+
+    staff_members: Mapped[list["ClubStaff"]] = relationship("ClubStaff", back_populates="club")
+
