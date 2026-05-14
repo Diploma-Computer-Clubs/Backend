@@ -34,24 +34,19 @@ from src.modules.club_staff.model import ClubStaff
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Асинхронное создание таблиц при старте приложения
     async with engine.begin() as conn:
-        # Сначала принудительно создаем независимые таблицы, чтобы избежать ошибок Foreign Key
-        await conn.run_sync(User.__table__.create, checkfirst=True)
         await conn.run_sync(City.__table__.create, checkfirst=True)
-
-        # Затем создаем все остальные таблицы проекта
+        await conn.run_sync(User.__table__.create, checkfirst=True)
         await conn.run_sync(Club.__table__.create, checkfirst=True)
         await conn.run_sync(Zone.__table__.create, checkfirst=True)
         await conn.run_sync(Computer.__table__.create, checkfirst=True)
-        await conn.run_sync(Booking.__table__.create, checkfirst=True)
         await conn.run_sync(ZonePackage.__table__.create, checkfirst=True)
+        await conn.run_sync(Booking.__table__.create, checkfirst=True)
         await conn.run_sync(ClubStaff.__table__.create, checkfirst=True)
+
     yield
-    # Тут можно прописать действия при остановке сервера, если нужно
 
 
-# Передаем lifespan в инициализацию FastAPI
 app = FastAPI(lifespan=lifespan)
 
 
