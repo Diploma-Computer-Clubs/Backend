@@ -111,8 +111,6 @@ class ClubService:
                     start, end = now, now + timedelta(hours=3)
                 else:
                     start, end = custom_start, custom_end
-
-                # Запрос к твоему DAO
                 raw_zones = await cls.get_club_map(club_id, start, end)
                 data_to_send = []
                 if raw_zones:
@@ -126,7 +124,6 @@ class ClubService:
                                 data_to_send.append(json.loads(validated_zone.json(by_alias=True)))
                             else:
                                 data_to_send.append({k: v for k, v in zone.__dict__.items() if not k.startswith('_')})
-
                 await websocket.send_json({
                     "mode": current_mode,
                     "start_time": start.isoformat(),
@@ -151,8 +148,6 @@ class ClubService:
                 pass
             except Exception:
                 await websocket.close(code=status.WS_1011_INTERNAL_ERROR)
-
-        # Отправляем карту сразу после коннекта
         await send_map_update()
         refresh_task = asyncio.create_task(auto_refresh_loop())
 

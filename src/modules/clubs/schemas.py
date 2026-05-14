@@ -85,6 +85,6 @@ class SZoneMapResponse(SBase):
 
 #вебсокет
 class WSPeriodPayload(BaseModel):
-    mode: str  # Ожидается "live" или "history"
+    mode: str
     start_time: Optional[datetime] = None
     end_time: Optional[datetime] = None
