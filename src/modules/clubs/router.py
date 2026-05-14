@@ -1,7 +1,9 @@
+import logging
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 
 from fastapi import APIRouter, HTTPException, Depends
+from starlette.requests import Request
 
 from src.modules.clubs.schemas import SClubCreate, SClubMainInfo, SClubMap, SClubChange, SZoneMapResponse, \
     WSPeriodPayload
@@ -75,13 +77,47 @@ async def get_club_availability(club_id: int, start_time: datetime, end_time: da
         raise HTTPException(404, detail="Zones not found for this club")
     return zones
 
+
+logger = logging.getLogger(__name__)
 #вебсокет
 @router.websocket("/{club_id}/availability/ws")
-async def ws_club_availability(websocket: WebSocket, club_id: int, token: str):
-    await websocket.accept()
-    try:
-        await get_ws_club_admin(websocket, club_id, token)
-    except WebSocketException as e:
-        return await websocket.close(code=e.code, reason=e.reason)
+async def ws_club_availability(
+        websocket: WebSocket,
+        club_id: int,
+        request: Request
+):
+    logger.info(f"===> [WS CONNECTION ATTEMPT] Club ID: {club_id}")
 
-    await ClubService.handle_admin_websocket(websocket, club_id)
+    # Вытаскиваем все параметры вручную
+    query_params = dict(request.query_params)
+    logger.info(f"[WS PARAMS] Received query params: {query_params}")
+
+    token = query_params.get("token")
+
+    if not token:
+        logger.warning(f"[WS AUTH ERROR] Token parameter is missing in URL for club_id: {club_id}")
+        raise WebSocketException(code=status.WS_1008_POLICY_VIOLATION, reason="Token missing")
+
+    logger.info(f"[WS AUTH] Token found in URL (Length: {len(token)} characters)")
+
+    # Проверка прав доступа
+    try:
+        logger.info("[WS AUTH] Starting get_ws_club_admin verification...")
+        await get_ws_club_admin(websocket, club_id, token)
+        logger.info("[WS AUTH SUCCESS] Verification passed successfully!")
+    except WebSocketException as ws_err:
+        logger.error(f"[WS AUTH FAILED] WebSocketException raised: Code={ws_err.code}, Reason={ws_err.reason}")
+        raise ws_err
+    except Exception as e:
+        logger.error(f"[WS AUTH CRITICAL ERROR] Unexpected crash during verification: {str(e)}", exc_info=True)
+        raise WebSocketException(code=status.WS_1008_POLICY_VIOLATION, reason="Auth internal error")
+
+    # Открываем соединение только после успешной проверки
+    logger.info("[WS HANDSHAKE] Accepting websocket connection...")
+    await websocket.accept()
+    logger.info("[WS HANDSHAKE SUCCESS] Connection accepted. Handing over to ClubService.")
+
+    try:
+        await ClubService.handle_admin_websocket(websocket, club_id)
+    except Exception as e:
+        logger.error(f"[WS SESSION CRASH] Exception inside handle_admin_websocket: {str(e)}", exc_info=True)
