@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 import redis
 from fastapi import FastAPI
 from sqlalchemy.exc import SQLAlchemyError
@@ -17,9 +19,40 @@ from src.modules.pricing.router import router as pricing_router
 from src.modules.club_staff.router import router as clubs_staff_router
 from fastapi.staticfiles import StaticFiles
 
+from src.shared.configurations.database import engine
 from src.shared.models.model import *
 
-app = FastAPI()
+from src.modules.users.model import User
+from src.modules.cities.model import City
+from src.modules.clubs.model import Club
+from src.modules.zones.model import Zone
+from src.modules.computers.model import Computer
+from src.modules.bookings.model import Booking
+from src.modules.pricing.model import ZonePackage
+from src.modules.club_staff.model import ClubStaff
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Асинхронное создание таблиц при старте приложения
+    async with engine.begin() as conn:
+        # Сначала принудительно создаем независимые таблицы, чтобы избежать ошибок Foreign Key
+        await conn.run_sync(User.__table__.create, checkfirst=True)
+        await conn.run_sync(City.__table__.create, checkfirst=True)
+
+        # Затем создаем все остальные таблицы проекта
+        await conn.run_sync(Club.__table__.create, checkfirst=True)
+        await conn.run_sync(Zone.__table__.create, checkfirst=True)
+        await conn.run_sync(Computer.__table__.create, checkfirst=True)
+        await conn.run_sync(Booking.__table__.create, checkfirst=True)
+        await conn.run_sync(ZonePackage.__table__.create, checkfirst=True)
+        await conn.run_sync(ClubStaff.__table__.create, checkfirst=True)
+    yield
+    # Тут можно прописать действия при остановке сервера, если нужно
+
+
+# Передаем lifespan в инициализацию FastAPI
+app = FastAPI(lifespan=lifespan)
 
 
 
