@@ -10,7 +10,7 @@ from src.exception_handlers import redis_connection_error_handler, sqlalchemy_er
 from src.modules.users.router import router as router_users
 from src.modules.auth.router import router as router_auth
 from src.modules.cities.router import router as cities_router
-from src.modules.clubs.router import router as clubs_router
+from src.modules.clubs.router import router as clubs_router, ws_club_availability
 from src.modules.media.router import router as media_router
 from src.modules.zones.router import router as zones_router
 from src.modules.computers.router import router as computers_router
@@ -44,6 +44,11 @@ async def lifespan(app: FastAPI):
         await conn.run_sync(Booking.__table__.create, checkfirst=True)
         await conn.run_sync(ClubStaff.__table__.create, checkfirst=True)
 
+    async with engine.connect() as conn:
+        if conn.dialect.name == "postgresql":
+            conn = await conn.execution_options(isolation_level="AUTOCOMMIT")
+            await conn.exec_driver_sql("ALTER TYPE role ADD VALUE IF NOT EXISTS 'owner'")
+
     yield
 
 
@@ -63,11 +68,11 @@ app.include_router(computers_router)
 app.include_router(bookings_router)
 app.include_router(pricing_router)
 app.include_router(clubs_staff_router)
+app.add_api_websocket_route("/{club_id}/availability/ws", ws_club_availability, name="ws_club_availability_legacy")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 app.add_exception_handler(redis.exceptions.ConnectionError, redis_connection_error_handler)
 app.add_exception_handler(SQLAlchemyError, sqlalchemy_error_handler)
-
 
 
 app.add_middleware(
@@ -77,3 +82,4 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+

@@ -19,7 +19,11 @@ class ClubDAO(BaseDAO):
 
     @classmethod
     async def find_full_data(cls, city_id: int):
-        return await cls.find_all(joinedload(cls.model.city), city_id=city_id)
+        return await cls.find_all(
+            joinedload(cls.model.city),
+            selectinload(cls.model.zones),
+            city_id=city_id
+        )
 
     @classmethod
     async def get_min_price_by_club(cls, club_id: int):

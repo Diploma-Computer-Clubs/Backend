@@ -1,14 +1,12 @@
-import logging
 from datetime import datetime
-from typing import List, Optional
+from typing import List
 
 from fastapi import APIRouter, HTTPException, Depends
-from starlette.requests import Request
 
 from src.modules.clubs.schemas import SClubCreate, SClubMainInfo, SClubMap, SClubChange, SZoneMapResponse, \
     WSPeriodPayload
 from src.modules.clubs.service import ClubService
-from src.shared.dependencies.dependencies import RoleChecker
+from src.shared.dependencies.dependencies import RoleChecker, owner_only
 from src.shared.dependencies.user_dependency import get_current_user_id
 
 
@@ -23,19 +21,19 @@ from src.shared.dependencies.websocket_dependency import get_ws_club_admin
 router = APIRouter(prefix='/clubs', tags=['Clubs Management'])
 
 
-@router.post("", summary="Register new club")
-async def register_club(club_info: SClubCreate, user_id: int = Depends(get_current_user_id)):
+@router.post("", summary="Register new club (role: owner)")
+async def register_club(club_info: SClubCreate, user_info: int = Depends(owner_only), user_id: int = Depends(get_current_user_id)):
     result = await ClubService.create_club(club_info, user_id)
     if not result:
         raise HTTPException(status_code=400, detail="Error adding a club")
     return {"message": "Club successfully added"}
 
-@router.patch("/{club_id}", summary="Update club info")
-async def update_club(club_info: SClubChange, user_id: int = Depends(get_current_user_id)):
+@router.patch("/{club_id}", summary="Update club info (owner)")
+async def update_club(club_info: SClubChange, user_id: int = Depends(RoleChecker([]))):
     return await ClubService.update_club(club_info)
 
-@router.delete("/{club_id}", summary="Delete club")
-async def delete_club(club_id: int, user_id: int = Depends(get_current_user_id)):
+@router.delete("/{club_id}", summary="Delete club (owner)")
+async def delete_club(club_id: int, user_id: int = Depends(RoleChecker([]))):
     return await ClubService.delete_clubs(club_id)
 
 
@@ -77,47 +75,18 @@ async def get_club_availability(club_id: int, start_time: datetime, end_time: da
         raise HTTPException(404, detail="Zones not found for this club")
     return zones
 
-
-logger = logging.getLogger(__name__)
 #вебсокет
 @router.websocket("/{club_id}/availability/ws")
-async def ws_club_availability(
-        websocket: WebSocket,
-        club_id: int,
-        request: Request
-):
-    logger.info(f"===> [WS CONNECTION ATTEMPT] Club ID: {club_id}")
-
-    # Вытаскиваем все параметры вручную
-    query_params = dict(request.query_params)
-    logger.info(f"[WS PARAMS] Received query params: {query_params}")
-
-    token = query_params.get("token")
-
-    if not token:
-        logger.warning(f"[WS AUTH ERROR] Token parameter is missing in URL for club_id: {club_id}")
-        raise WebSocketException(code=status.WS_1008_POLICY_VIOLATION, reason="Token missing")
-
-    logger.info(f"[WS AUTH] Token found in URL (Length: {len(token)} characters)")
-
-    # Проверка прав доступа
-    try:
-        logger.info("[WS AUTH] Starting get_ws_club_admin verification...")
-        await get_ws_club_admin(websocket, club_id, token)
-        logger.info("[WS AUTH SUCCESS] Verification passed successfully!")
-    except WebSocketException as ws_err:
-        logger.error(f"[WS AUTH FAILED] WebSocketException raised: Code={ws_err.code}, Reason={ws_err.reason}")
-        raise ws_err
-    except Exception as e:
-        logger.error(f"[WS AUTH CRITICAL ERROR] Unexpected crash during verification: {str(e)}", exc_info=True)
-        raise WebSocketException(code=status.WS_1008_POLICY_VIOLATION, reason="Auth internal error")
-
-    # Открываем соединение только после успешной проверки
-    logger.info("[WS HANDSHAKE] Accepting websocket connection...")
+async def ws_club_availability(websocket: WebSocket, club_id: int):
     await websocket.accept()
-    logger.info("[WS HANDSHAKE SUCCESS] Connection accepted. Handing over to ClubService.")
-
     try:
-        await ClubService.handle_admin_websocket(websocket, club_id)
-    except Exception as e:
-        logger.error(f"[WS SESSION CRASH] Exception inside handle_admin_websocket: {str(e)}", exc_info=True)
+        await get_ws_club_admin(websocket, club_id)
+    except WebSocketException as e:
+        if getattr(getattr(websocket, "application_state", None), "name", None) != "DISCONNECTED":
+            try:
+                await websocket.close(code=e.code, reason=e.reason)
+            except Exception:
+                pass
+        return
+
+    await ClubService.handle_admin_websocket(websocket, club_id)

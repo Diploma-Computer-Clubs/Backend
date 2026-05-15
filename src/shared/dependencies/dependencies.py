@@ -5,6 +5,7 @@ from src.modules.clubs.service import ClubService
 from src.shared.dependencies.user_dependency import get_current_user_id
 from src.modules.users.dao import UserDAO
 from src.modules.users.model import User
+from src.shared.schemas.schemas import Role
 
 
 async def get_current_user(user_id: int = Depends(get_current_user_id)) -> User:
@@ -55,7 +56,15 @@ class RoleChecker:
 
 
 async def super_admin_only(user: User = Depends(get_current_user)):
-    if getattr(user, "role", None) != "admin":
+    current_role = getattr(getattr(user, "role", None), "value", getattr(user, "role", None))
+    if current_role != Role.admin.value:
         raise HTTPException(status_code=403,detail="This action is only for Global System Administrators")
+    return user
+
+
+async def owner_only(user: User = Depends(get_current_user)):
+    current_role = getattr(getattr(user, "role", None), "value", getattr(user, "role", None))
+    if current_role != Role.owner.value:
+        raise HTTPException(status_code=403, detail="This action is only for Owners")
     return user
 

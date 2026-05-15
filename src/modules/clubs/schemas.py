@@ -16,6 +16,7 @@ class SZoneShort(SBase):
     cost: int
 
 class SBookingShort(SBase):
+    id: int
     start_time: datetime
     end_time: datetime
     total_price: int

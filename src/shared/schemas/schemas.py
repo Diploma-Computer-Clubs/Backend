@@ -4,6 +4,7 @@ from enum import Enum
 
 class Role(str, Enum):
     user = "user"
+    owner = "owner"
     admin = "admin"
 
 class ZoneName(str, Enum):

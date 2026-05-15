@@ -3,11 +3,7 @@ from typing import Optional
 from sqlalchemy import ForeignKey, text
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from src.shared.configurations.database import Base, str_uniq, int_pk, str_password
-from enum import Enum
-
-class Role(str, Enum):
-    user = "user"
-    admin = "admin"
+from src.shared.schemas.schemas import Role
 
 class User(Base):
     id: Mapped[int_pk]

@@ -4,6 +4,7 @@ import random
 from sqlalchemy import func
 from src.modules.users.dao import UserDAO
 from src.modules.users.schemas import SUser, SUserPostData
+from src.shared.schemas.schemas import Role
 from src.shared.redis.utils import get_code, delete_code, set_code
 from src.shared.utils.auth_utils import get_password_hash
 from src.shared.utils.sms_sender import send_sms_via_twilio
@@ -43,6 +44,19 @@ class UserService:
     @classmethod
     async def delete_user(cls, user_id: int):
         return await UserDAO.delete(id=user_id)
+
+    @classmethod
+    async def change_user_role(cls, phone_number: str, from_role: Role, to_role: Role):
+        user = await UserService.find_user_by_phone_number(phone_number)
+        if not user:
+            raise LookupError("User not found")
+
+        current_role = getattr(getattr(user, "role", None), "value", getattr(user, "role", None))
+        if current_role != from_role.value:
+            raise ValueError(f'User role must be "{from_role.value}"')
+
+        result = await UserDAO.update(filter_by={"phone_number": phone_number}, role=to_role, updated_at=func.now())
+        return result > 0
 
     @classmethod
     async def request_verification(cls, phone: str) -> bool:

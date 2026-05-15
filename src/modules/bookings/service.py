@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List
 from fastapi import HTTPException, status
 
@@ -10,11 +10,7 @@ from src.modules.computers.dao import ComputerDAO
 class BookingService:
 
     @classmethod
-    async def create_booking(cls, bookings_info: List[SBookingCreate], user_id: int):
-        existing = await BookingDAO.get_active_user_booking(user_id)
-        if existing:
-            raise HTTPException(status_code=400, detail="You already have an active booking")
-
+    async def _prepare_and_validate_bookings(cls, bookings_info: List[SBookingCreate], user_id: int) -> List[dict]:
         now = datetime.now()
         prepared_bookings = []
 
@@ -49,6 +45,20 @@ class BookingService:
             })
             prepared_bookings.append(data)
 
+        return prepared_bookings
+
+    @classmethod
+    async def create_booking(cls, bookings_info: List[SBookingCreate], user_id: int):
+        existing = await BookingDAO.get_active_user_booking(user_id)
+        if existing:
+            raise HTTPException(status_code=400, detail="You already have an active booking")
+
+        prepared_bookings = await cls._prepare_and_validate_bookings(bookings_info, user_id)
+        return await BookingDAO.add_list(prepared_bookings)
+
+    @classmethod
+    async def create_admin_booking(cls, bookings_info: List[SBookingCreate], user_id: int):
+        prepared_bookings = await cls._prepare_and_validate_bookings(bookings_info, user_id)
         return await BookingDAO.add_list(prepared_bookings)
 
     @classmethod
@@ -58,11 +68,16 @@ class BookingService:
     @classmethod
     async def delete_booking(cls, booking_id: int, user_id: int):
         booking = await BookingDAO.find_one_or_none(id=booking_id)
-
         if not booking:
             raise HTTPException(status_code=404, detail="Booking not found")
-
         if booking.user_id != user_id:
             raise HTTPException(status_code=403, detail="Not allowed to delete others' bookings")
-
         return await BookingDAO.delete(id=booking_id)
+
+    @classmethod
+    async def delete_booking_admin(cls, booking_id: int):
+        booking = await BookingDAO.find_one_or_none(id=booking_id)
+        if not booking:
+            raise HTTPException(status_code=404, detail="Booking not found")
+        return await BookingDAO.delete(id=booking_id)
+

@@ -94,23 +94,54 @@ class ClubService:
     async def get_club_by_owner_id(cls, owner_id: int):
         return await ClubDAO.find_all(owner_id=owner_id)
 
-
-    #Вебсокет
     @classmethod
     async def handle_admin_websocket(cls, websocket: WebSocket, club_id: int):
-        """Вся логика сессии вебсокета: стейты, отправка, циклы и фоновые таски"""
+        import contextlib
+        from starlette.websockets import WebSocketDisconnect
+
         current_mode = "live"
         custom_start = None
         custom_end = None
+        local_tz = datetime.now().astimezone().tzinfo
+
+        def is_socket_open() -> bool:
+            application_state = getattr(getattr(websocket, "application_state", None), "name", None)
+            client_state = getattr(getattr(websocket, "client_state", None), "name", None)
+            return application_state != "DISCONNECTED" and client_state != "DISCONNECTED"
+
+        async def safe_close(code: int = status.WS_1000_NORMAL_CLOSURE, reason: str | None = None):
+            if not is_socket_open():
+                return
+            try:
+                if reason is None:
+                    await websocket.close(code=code)
+                else:
+                    await websocket.close(code=code, reason=reason)
+            except Exception:
+                pass
+
+        def normalize_client_datetime(value: datetime | None) -> datetime | None:
+            if value is None:
+                return None
+            if value.tzinfo is None or value.tzinfo.utcoffset(value) is None:
+                return value.replace(tzinfo=None)
+            if local_tz is None:
+                return value.astimezone().replace(tzinfo=None)
+            return value.astimezone(local_tz).replace(tzinfo=None)
 
         async def send_map_update():
             nonlocal current_mode, custom_start, custom_end
+
+            if not is_socket_open():
+                return False
+
             try:
                 if current_mode == "live":
-                    now = datetime.now()
+                    now = datetime.now(local_tz).replace(tzinfo=None) if local_tz else datetime.now()
                     start, end = now, now + timedelta(hours=3)
                 else:
                     start, end = custom_start, custom_end
+
                 raw_zones = await cls.get_club_map(club_id, start, end)
                 data_to_send = []
                 if raw_zones:
@@ -123,32 +154,87 @@ class ClubService:
                                 validated_zone = SZoneMapResponse.from_orm(zone)
                                 data_to_send.append(json.loads(validated_zone.json(by_alias=True)))
                             else:
-                                data_to_send.append({k: v for k, v in zone.__dict__.items() if not k.startswith('_')})
+                                data_to_send.append({k: v for k, v in zone.__dict__.items() if not k.startswith("_")})
+
+                if not is_socket_open():
+                    return False
+
                 await websocket.send_json({
                     "mode": current_mode,
                     "start_time": start.isoformat(),
                     "end_time": end.isoformat(),
                     "zones": data_to_send
                 })
+                return True
+            except WebSocketDisconnect:
+                return False
             except Exception as e:
-                logger.error(f"!!! КРАШ СЕРИАЛИЗАЦИИ В ВЕБСОКЕТЕ !!!: {str(e)}", exc_info=True)
-                try:
-                    await websocket.send_json({"error": f"Internal mapping error: {str(e)}"})
-                    await websocket.close(code=status.WS_1011_INTERNAL_ERROR)
-                except Exception:
-                    pass
+                logger.error(f"WebSocket map update failed: {e}", exc_info=True)
+                if is_socket_open():
+                    with contextlib.suppress(Exception):
+                        await websocket.send_json({"error": f"Internal mapping error: {str(e)}"})
+                    await safe_close(code=status.WS_1011_INTERNAL_ERROR)
+                return False
+
+        async def apply_period_payload(payload_json: dict):
+            nonlocal current_mode, custom_start, custom_end
+
+            try:
+                command = WSPeriodPayload(**payload_json)
+                if command.mode == "live":
+                    current_mode, custom_start, custom_end = "live", None, None
+                elif command.mode == "history" and command.start_time and command.end_time:
+                    current_mode = "history"
+                    custom_start = normalize_client_datetime(command.start_time)
+                    custom_end = normalize_client_datetime(command.end_time)
+                else:
+                    if is_socket_open():
+                        await websocket.send_json({"error": "Missing start_time or end_time for history mode"})
+                    return True
+                return await send_map_update()
+            except (ValueError, TypeError):
+                if is_socket_open():
+                    await websocket.send_json({"error": "Validation failed or invalid JSON format"})
+                return True
 
         async def auto_refresh_loop():
             try:
                 while True:
-                    await asyncio.sleep(30)
-                    if current_mode == "live":
-                        await send_map_update()
+                    await asyncio.sleep(1)
+                    if not is_socket_open():
+                        break
+                    should_continue = await send_map_update()
+                    if not should_continue:
+                        break
             except asyncio.CancelledError:
-                pass
+                raise
             except Exception:
-                await websocket.close(code=status.WS_1011_INTERNAL_ERROR)
-        await send_map_update()
+                logger.error("WebSocket auto refresh loop crashed", exc_info=True)
+                await safe_close(code=status.WS_1011_INTERNAL_ERROR)
+
+        initial_payload = getattr(websocket.state, "ws_initial_payload", None)
+        if not isinstance(initial_payload, dict):
+            query_mode = websocket.query_params.get("mode")
+            query_start = websocket.query_params.get("start_time")
+            query_end = websocket.query_params.get("end_time")
+            if query_mode or query_start or query_end:
+                initial_payload = {
+                    "mode": query_mode or ("history" if query_start and query_end else "live"),
+                    "start_time": query_start,
+                    "end_time": query_end,
+                }
+        setattr(websocket.state, "ws_initial_payload", None)
+        if isinstance(initial_payload, dict) and any(
+            key in initial_payload for key in ("mode", "start_time", "end_time")
+        ):
+            should_continue = await apply_period_payload(initial_payload)
+            if not should_continue:
+                return
+        else:
+            should_continue = await send_map_update()
+            if not should_continue:
+                return
+
         refresh_task = asyncio.create_task(auto_refresh_loop())
 
         try:
@@ -156,22 +242,27 @@ class ClubService:
                 raw_data = await websocket.receive_text()
                 try:
                     payload_json = json.loads(raw_data)
-                    command = WSPeriodPayload(**payload_json)
-                    if command.mode == "live":
-                        current_mode, custom_start, custom_end = "live", None, None
-                    elif command.mode == "history" and command.start_time and command.end_time:
-                        current_mode, custom_start, custom_end = "history", command.start_time, command.end_time
-                    else:
-                        await websocket.send_json({"error": "Missing start_time or end_time for history mode"})
-                        continue
-                    await send_map_update()
-                except (json.JSONDecodeError, ValueError):
-                    await websocket.send_json({"error": "Validation failed or invalid JSON format"})
-        except Exception:
+                    if not isinstance(payload_json, dict):
+                        raise ValueError
+                except (json.JSONDecodeError, ValueError, TypeError):
+                    if is_socket_open():
+                        await websocket.send_json({"error": "Validation failed or invalid JSON format"})
+                    continue
+
+                should_continue = await apply_period_payload(payload_json)
+                if not should_continue:
+                    break
+        except WebSocketDisconnect:
             pass
+        except RuntimeError as e:
+            if "disconnect" not in str(e).lower() and "close" not in str(e).lower():
+                logger.error("Unexpected WebSocket runtime error", exc_info=True)
+                await safe_close(code=status.WS_1011_INTERNAL_ERROR)
+        except Exception:
+            logger.error("Unexpected WebSocket session error", exc_info=True)
+            await safe_close(code=status.WS_1011_INTERNAL_ERROR)
         finally:
             refresh_task.cancel()
-            try:
-                await websocket.close()
-            except Exception:
-                pass
+            with contextlib.suppress(asyncio.CancelledError):
+                await refresh_task
+            await safe_close()

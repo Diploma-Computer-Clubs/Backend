@@ -1,9 +1,10 @@
 from fastapi import Depends, HTTPException
-from src.shared.dependencies.dependencies import get_current_user
+from src.shared.dependencies.dependencies import get_current_user, super_admin_only
 from src.modules.users.schemas import SUser, SUserGetData, SUserPostData, SUserVerify, SUserPhoneAuth
 from fastapi import APIRouter
 from src.modules.users.model import User
 from src.modules.users.service import UserService
+from src.shared.schemas.schemas import Role
 from src.shared.auth.jwt import set_auth_tokens, create_reset_password_token
 from src.shared.dependencies.user_dependency import get_current_user_id, get_user_id_for_reset
 
@@ -59,6 +60,36 @@ async def change_user(user_data: SUserPostData, user: int = Depends(get_current_
 @router.delete('/me', summary='Delete current user account')
 async def delete_user(user_id: int = Depends(get_current_user_id)):
     return await UserService.delete_user(user_id)
+
+
+@router.patch("/{user_id}/promote-to-owner", summary="Change user role from user to owner (superadmin)")
+async def promote_user_to_owner(phone_number: str, admin: User = Depends(super_admin_only)):
+    try:
+        changed = await UserService.change_user_role(phone_number, Role.user, Role.owner)
+    except LookupError:
+        raise HTTPException(status_code=404, detail="User not found")
+    except ValueError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+
+    if not changed:
+        raise HTTPException(status_code=400, detail="Failed to change user role")
+
+    return {"message": "User role changed to owner", "phone_number": phone_number, "role": Role.owner.value}
+
+
+@router.patch("/{user_id}/demote-to-user", summary="Change user role from owner to user (superadmin)")
+async def demote_owner_to_user(phone_number: str, admin: User = Depends(super_admin_only)):
+    try:
+        changed = await UserService.change_user_role(phone_number, Role.owner, Role.user)
+    except LookupError:
+        raise HTTPException(status_code=404, detail="User not found")
+    except ValueError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+
+    if not changed:
+        raise HTTPException(status_code=400, detail="Failed to change user role")
+
+    return {"message": "User role changed to user", "phone_number": phone_number, "role": Role.user.value}
 
 
 

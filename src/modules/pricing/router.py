@@ -5,12 +5,13 @@ from fastapi import APIRouter, Depends
 from src.modules.pricing.dao import PackageDAO
 from src.modules.pricing.schemas import SBulkPriceRequest, SZonePackage, STotalPriceResponse
 from src.modules.pricing.service import PricingService
+from src.shared.dependencies.dependencies import RoleChecker
 from src.shared.dependencies.user_dependency import get_current_user_id
 
 router = APIRouter(prefix="/pricing", tags=["Pricing management"])
 
-@router.post("/", summary="Create pricing package")
-async def create_package(package_data: SZonePackage, user_id: int = Depends(get_current_user_id)):
+@router.post("/", summary="Create pricing package (owner)")
+async def create_package(package_data: SZonePackage, user_id: int = Depends(RoleChecker([]))):
     return await PackageDAO.add(**package_data.model_dump())
 
 

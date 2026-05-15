@@ -27,3 +27,7 @@ class ClubStaffService:
     @classmethod
     async def get_membership_by_user_id(cls, user_id: int):
         return await ClubStaffDAO.find_one_or_none(user_id=user_id)
+
+    @classmethod
+    async def delete_staff(cls, club_id: int, user_id: int):
+        return await ClubStaffDAO.delete(club_id=club_id, user_id=user_id)

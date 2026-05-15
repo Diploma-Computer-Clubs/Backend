@@ -18,10 +18,14 @@ class ComputerService:
 
     @classmethod
     async def turn_on_computer(cls, computer_id: int):
-        result = await ComputerDAO.update(filter_by={"id": computer_id}, is_Active=True, updated_at=func.now())
+        result = await ComputerDAO.update(filter_by={"id": computer_id}, is_active=True, updated_at=func.now())
         return result > 0
 
     @classmethod
     async def turn_off_computer(cls, computer_id: int):
-        result = await ComputerDAO.update(filter_by={"id": computer_id}, is_Active=False, updated_at=func.now())
+        result = await ComputerDAO.update(filter_by={"id": computer_id}, is_active=False, updated_at=func.now())
         return result > 0
+
+    @classmethod
+    async def delete_computer(cls, computer_id: int):
+        return await ComputerDAO.delete(id=computer_id)
