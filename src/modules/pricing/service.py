@@ -17,7 +17,7 @@ class PricingService:
         if not packages:
             return 0
         base_hour = next((p for p in packages if not p.is_package and p.duration == 1), None)
-        base_price = base_hour.price if base_hour else 500
+        base_price = base_hour.price
         dp = [float('inf')] * (total_hours + 1)
         dp[0] = 0
         for i in range(1, total_hours + 1):

@@ -1,5 +1,7 @@
 from datetime import datetime
-from sqlalchemy import ForeignKey
+from typing import Optional
+
+from sqlalchemy import ForeignKey, text
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from src.shared.configurations.database import Base, int_pk
 
@@ -8,6 +10,7 @@ class Booking(Base):
     start_time: Mapped[datetime]
     end_time: Mapped[datetime]
     total_price: Mapped[int]
+    is_checked_in: Mapped[Optional[bool]] = mapped_column(default=False, server_default=text('false'), nullable=True)
 
     user_id: Mapped[int] = mapped_column(ForeignKey('users.id', ondelete="SET NULL"), nullable=True)
     user: Mapped["User"] = relationship("User", back_populates="bookings")

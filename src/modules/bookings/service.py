@@ -3,7 +3,7 @@ from typing import List
 from fastapi import HTTPException, status
 
 from src.modules.bookings.dao import BookingDAO
-from src.modules.bookings.schemas import SBookingCreate
+from src.modules.bookings.schemas import SBookingCreate, SBookingCheckIn
 from src.modules.computers.dao import ComputerDAO
 
 
@@ -80,4 +80,9 @@ class BookingService:
         if not booking:
             raise HTTPException(status_code=404, detail="Booking not found")
         return await BookingDAO.delete(id=booking_id)
+
+    @classmethod
+    async def update_check_in_status(cls, booking_info: SBookingCheckIn):
+        result = await BookingDAO.update_check_in_status(booking_info.booking_id, booking_info.is_checked_in)
+        return result > 0
 

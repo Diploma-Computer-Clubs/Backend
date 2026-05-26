@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import select, and_
+from sqlalchemy import select, and_, func
 from sqlalchemy.orm import joinedload
 
 from src.shared.configurations.database import async_session_maker
@@ -31,3 +31,7 @@ class BookingDAO(BaseDAO):
             )
             result = await session.execute(query)
             return result.scalars().all()
+
+    @classmethod
+    async def update_check_in_status(cls, booking_id: int, is_checked_in: bool):
+        return await cls.update(filter_by={"id": booking_id}, is_checked_in=is_checked_in, updated_at=func.now())

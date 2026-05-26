@@ -48,3 +48,8 @@ class SBookingView(BaseModel):
     zone: SZoneInfo
     computer: SComputerInfo
 
+
+class SBookingCheckIn(BaseModel):
+    booking_id: int
+    is_checked_in: bool
+
