@@ -1,7 +1,9 @@
 import logging
 import random
+from datetime import datetime
 
 from sqlalchemy import func
+from src.modules.bookings.dao import BookingDAO
 from src.modules.users.dao import UserDAO
 from src.modules.users.schemas import SUser, SUserPostData
 from src.shared.schemas.schemas import Role
@@ -78,3 +80,31 @@ class UserService:
             return False
         await delete_code(phone)
         return True
+
+    @classmethod
+    def _apply_reputation_recovery(cls, reputation: int, start_time: datetime, end_time: datetime):
+        weeks = int((end_time - start_time).total_seconds() // (7 * 24 * 3600))
+        if weeks <= 0:
+            return reputation
+        return min(100, reputation + weeks * 4)
+
+    @classmethod
+    async def refresh_user_reputation(cls, user_id: int):
+        missed_bookings = await BookingDAO.get_user_missed_bookings(user_id)
+
+        reputation = 100
+        now = datetime.now()
+        last_booking_end_time = None
+
+        for booking in missed_bookings:
+            if last_booking_end_time:
+                reputation = cls._apply_reputation_recovery(reputation, last_booking_end_time, booking.end_time)
+
+            reputation = max(60, reputation - 10)
+            last_booking_end_time = booking.end_time
+
+        if last_booking_end_time:
+            reputation = cls._apply_reputation_recovery(reputation, last_booking_end_time, now)
+
+        await UserDAO.update_reputation(user_id, reputation)
+        return reputation

@@ -35,3 +35,18 @@ class BookingDAO(BaseDAO):
     @classmethod
     async def update_check_in_status(cls, booking_id: int, is_checked_in: bool):
         return await cls.update(filter_by={"id": booking_id}, is_checked_in=is_checked_in, updated_at=func.now())
+
+    @classmethod
+    async def get_user_missed_bookings(cls, user_id: int):
+        async with async_session_maker() as session:
+            query = (
+                select(cls.model)
+                .filter(
+                    cls.model.user_id == user_id,
+                    cls.model.end_time <= datetime.now(),
+                    cls.model.is_checked_in.is_not(True)
+                )
+                .order_by(cls.model.end_time.asc())
+            )
+            result = await session.execute(query)
+            return result.scalars().all()

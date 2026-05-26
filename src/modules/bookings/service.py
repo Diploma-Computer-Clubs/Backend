@@ -5,9 +5,32 @@ from fastapi import HTTPException, status
 from src.modules.bookings.dao import BookingDAO
 from src.modules.bookings.schemas import SBookingCreate, SBookingCheckIn
 from src.modules.computers.dao import ComputerDAO
+from src.modules.users.service import UserService
 
 
 class BookingService:
+
+    @classmethod
+    async def _check_reputation_rules(cls, bookings_info: List[SBookingCreate], user_id: int):
+        reputation = await UserService.refresh_user_reputation(user_id)
+        now = datetime.now()
+
+        if reputation <= 69:
+            raise HTTPException(status_code=400, detail="Booking is unavailable due to low reputation")
+
+        if len(bookings_info) > 5:
+            raise HTTPException(status_code=400, detail="You can book only 5 computers")
+
+        if reputation <= 89 and len(bookings_info) > 1:
+            raise HTTPException(status_code=400, detail="You can book only 1 computer")
+
+        if reputation <= 79:
+            for info in bookings_info:
+                if info.start_time > now + timedelta(hours=2):
+                    raise HTTPException(status_code=400, detail="Booking can be no more than 2 hours ahead")
+
+                if (info.end_time - info.start_time) > timedelta(hours=5):
+                    raise HTTPException(status_code=400, detail="Max duration is 5 hours for your reputation")
 
     @classmethod
     async def _prepare_and_validate_bookings(cls, bookings_info: List[SBookingCreate], user_id: int) -> List[dict]:
@@ -49,6 +72,7 @@ class BookingService:
 
     @classmethod
     async def create_booking(cls, bookings_info: List[SBookingCreate], user_id: int):
+        await cls._check_reputation_rules(bookings_info, user_id)
         existing = await BookingDAO.get_active_user_booking(user_id)
         if existing:
             raise HTTPException(status_code=400, detail="You already have an active booking")
