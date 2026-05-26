@@ -79,3 +79,7 @@ class ClubDAO(BaseDAO):
             )
             result = await session.execute(query)
             return result.unique().scalars().all()
+
+    @classmethod
+    async def get_club_with_owner(cls, club_id: int):
+        return await cls.find_one_or_none(joinedload(cls.model.owner), id=club_id)

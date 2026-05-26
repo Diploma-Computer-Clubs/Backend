@@ -410,3 +410,141 @@ class ClubService:
         file_name = f"club_{club_id}_statistics_{start_time.strftime('%Y%m%d_%H%M%S')}_{end_time.strftime('%Y%m%d_%H%M%S')}.xml"
         content = cls._build_statistics_excel(club.name if club else f"Club {club_id}", start_time, end_time, rows)
         return content, file_name
+
+    @classmethod
+    def _build_statistics_excel_by_date(cls, club_name: str, owner_name: str, start_date, end_date, rows: list[list]):
+        from xml.sax.saxutils import escape
+
+        xml = [
+            '<?xml version="1.0" encoding="UTF-8"?>',
+            '<?mso-application progid="Excel.Sheet"?>',
+            '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">',
+            '<Worksheet ss:Name="Statistics">',
+            '<Table>',
+        ]
+
+        table_rows = [
+            ["Club", club_name],
+            ["Owner", owner_name],
+            ["Start date", start_date.strftime("%Y-%m-%d")],
+            ["End date", end_date.strftime("%Y-%m-%d")],
+            [],
+            ["Computer", "Zone", "Occupied hours", "Free hours", "Payment type", "Payment type price", "Usage count", "Computer total amount", "Zone total amount"],
+        ]
+
+        table_rows.extend(rows)
+
+        for row in table_rows:
+            xml.append('<Row>')
+            for value in row:
+                if isinstance(value, (int, float)):
+                    xml.append(f'<Cell><Data ss:Type="Number">{value}</Data></Cell>')
+                else:
+                    xml.append(f'<Cell><Data ss:Type="String">{escape("" if value is None else str(value))}</Data></Cell>')
+            xml.append('</Row>')
+
+        xml.extend([
+            '</Table>',
+            '</Worksheet>',
+            '</Workbook>',
+        ])
+
+        return ''.join(xml).encode("utf-8")
+
+    @classmethod
+    async def export_club_statistics_by_date(cls, club_id: int, period):
+        from datetime import datetime, timedelta, time
+
+        from src.modules.pricing.service import PricingService
+
+        start_time = datetime.combine(period.start_date, time.min)
+        end_time = datetime.combine(period.end_date + timedelta(days=1), time.min)
+        now = datetime.now()
+
+        if end_time > now:
+            end_time = now
+
+        if end_time < start_time:
+            end_time = start_time
+
+        club = await ClubDAO.get_club_with_owner(club_id)
+        zones = await ClubDAO.get_club_statistics_data(club_id, start_time, end_time)
+        period_hours = round(cls._get_statistics_overlap_hours(start_time, end_time, start_time, end_time), 2)
+        rows = []
+
+        for zone in sorted(zones, key=lambda item: (item.name, item.id)):
+            zone_total_amount = 0
+            zone_rows = []
+
+            for computer in sorted(zone.computers, key=lambda item: (item.number, item.id)):
+                occupied_hours = 0
+                computer_total_amount = 0
+                payment_stats = {}
+
+                for booking in sorted(computer.bookings, key=lambda item: item.start_time):
+                    booking_start = max(booking.start_time, start_time)
+                    booking_end = min(booking.end_time, end_time)
+                    overlap_hours = cls._get_statistics_overlap_hours(booking.start_time, booking.end_time, start_time, end_time)
+
+                    if overlap_hours <= 0:
+                        continue
+
+                    occupied_hours += overlap_hours
+
+                    booking_hours = cls._get_statistics_overlap_hours(booking.start_time, booking.end_time, booking.start_time, booking.end_time)
+                    if booking_hours > 0:
+                        computer_total_amount += booking.total_price * (overlap_hours / booking_hours)
+
+                    booking_payment_stats = PricingService.get_booking_payment_details(zone.packages, booking_start, booking_end)
+                    for package_name, info in booking_payment_stats.items():
+                        if package_name not in payment_stats:
+                            payment_stats[package_name] = {"count": 0, "price": info["price"]}
+                        payment_stats[package_name]["count"] += info["count"]
+
+                occupied_hours = round(occupied_hours, 2)
+                free_hours = round(max(period_hours - occupied_hours, 0), 2)
+                computer_total_amount = round(computer_total_amount, 2)
+                zone_total_amount += computer_total_amount
+
+                if payment_stats:
+                    first_payment_row = True
+                    for package_name, info in sorted(payment_stats.items()):
+                        zone_rows.append([
+                            computer.number if first_payment_row else "",
+                            zone.name if first_payment_row else "",
+                            occupied_hours if first_payment_row else "",
+                            free_hours if first_payment_row else "",
+                            package_name,
+                            info["price"],
+                            info["count"],
+                            computer_total_amount if first_payment_row else "",
+                        ])
+                        first_payment_row = False
+                else:
+                    zone_rows.append([
+                        computer.number,
+                        zone.name,
+                        occupied_hours,
+                        free_hours,
+                        "",
+                        "",
+                        0,
+                        computer_total_amount,
+                    ])
+
+            zone_total_amount = round(zone_total_amount, 2)
+
+            if not zone_rows:
+                rows.append(["", zone.name, 0, period_hours, "", "", 0, "", zone_total_amount])
+                continue
+
+            first_zone_row = True
+            for row in zone_rows:
+                rows.append(row + [zone_total_amount if first_zone_row else ""])
+                first_zone_row = False
+
+        owner_name = club.owner.full_name if club and club.owner else ""
+        club_name = club.name if club else f"Club {club_id}"
+        file_name = f"club_{club_id}_statistics_{period.start_date.strftime('%Y%m%d')}_{period.end_date.strftime('%Y%m%d')}.xls"
+        content = cls._build_statistics_excel_by_date(club_name, owner_name, period.start_date, period.end_date, rows)
+        return content, file_name

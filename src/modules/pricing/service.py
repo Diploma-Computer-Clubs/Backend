@@ -118,3 +118,17 @@ class PricingService:
             result[package_name] = result.get(package_name, 0) + 1
 
         return result
+
+    @classmethod
+    def get_booking_payment_details(cls, packages, start: datetime, end: datetime):
+        stats = cls.get_booking_payment_stats(packages, start, end)
+        package_prices = {package.name: package.price for package in packages}
+        result = {}
+
+        for package_name, count in stats.items():
+            result[package_name] = {
+                "count": count,
+                "price": package_prices.get(package_name, 0)
+            }
+
+        return result

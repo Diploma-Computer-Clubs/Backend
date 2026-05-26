@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, date
 from pydantic import BaseModel, Field, ConfigDict, model_validator
 from typing import List, Optional
 
@@ -94,3 +94,8 @@ class WSPeriodPayload(BaseModel):
 class SClubStatisticsPeriod(BaseModel):
     start_time: datetime
     end_time: datetime
+
+
+class SClubStatisticsDatePeriod(BaseModel):
+    start_date: date
+    end_date: date

@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 import pytest
 
@@ -99,31 +99,53 @@ async def test_club_availability_returns_zone_map_with_existing_bookings(client,
 
 async def test_owner_can_export_club_statistics_to_excel(client, factory):
     city = await factory.create_city()
-    owner = await factory.create_user(role=Role.owner, city_id=city.id)
+    owner = await factory.create_user(role=Role.owner, city_id=city.id, full_name="Owner Name")
     user = await factory.create_user(city_id=city.id)
-    club = await factory.create_club(owner_id=owner.id, city_id=city.id)
+    club = await factory.create_club(owner_id=owner.id, city_id=city.id, name="Cyber Arena Stats")
     zone = await factory.create_zone(club_id=club.id, name="VIP")
-    computer = await factory.create_computer(zone_id=zone.id, number=7)
+    first_computer = await factory.create_computer(zone_id=zone.id, number=71)
+    second_computer = await factory.create_computer(zone_id=zone.id, number=72)
     await factory.create_package(zone_id=zone.id, name="Base hour", duration=1, price=500, is_package=False)
     await factory.create_package(zone_id=zone.id, name="Night package", duration=2, price=900, is_package=True)
-    start_time, end_time = factory.booking_window(hours_from_now=-10, duration_hours=2)
-    booking = await factory.create_booking(
+    start_time = (datetime.now() - timedelta(days=2)).replace(hour=10, minute=0, second=0, microsecond=0)
+    end_time = start_time + timedelta(hours=2)
+    first_booking = await factory.create_booking(
         user_id=user.id,
         club_id=club.id,
         zone_id=zone.id,
-        computer_id=computer.id,
+        computer_id=first_computer.id,
         start_time=start_time,
         end_time=end_time,
         total_price=900,
     )
-    await BookingDAO.update_check_in_status(booking.id, True)
+    second_booking = await factory.create_booking(
+        user_id=user.id,
+        club_id=club.id,
+        zone_id=zone.id,
+        computer_id=first_computer.id,
+        start_time=end_time + timedelta(hours=1),
+        end_time=end_time + timedelta(hours=2),
+        total_price=500,
+    )
+    third_booking = await factory.create_booking(
+        user_id=user.id,
+        club_id=club.id,
+        zone_id=zone.id,
+        computer_id=second_computer.id,
+        start_time=end_time + timedelta(hours=3),
+        end_time=end_time + timedelta(hours=4),
+        total_price=500,
+    )
+    await BookingDAO.update_check_in_status(first_booking.id, True)
+    await BookingDAO.update_check_in_status(second_booking.id, True)
+    await BookingDAO.update_check_in_status(third_booking.id, True)
 
     response = await client.post(
         f"/clubs/{club.id}/statistics/export",
         headers=factory.auth_headers(factory.access_token(owner.id)),
         json={
-            "start_time": start_time.isoformat(),
-            "end_time": (end_time + timedelta(hours=2)).isoformat(),
+            "start_date": start_time.date().isoformat(),
+            "end_date": start_time.date().isoformat(),
         },
     )
 
@@ -132,8 +154,17 @@ async def test_owner_can_export_club_statistics_to_excel(client, factory):
     assert "attachment;" in response.headers["content-disposition"]
 
     content = response.content.decode("utf-8")
+    assert "Cyber Arena Stats" in content
+    assert "Owner Name" in content
+    assert "Payment type price" in content
     assert "VIP" in content
-    assert "Computer 7" in content
+    assert "Computer 71" not in content
+    assert ">71<" in content
+    assert ">72<" in content
+    assert "Zone total amount" in content
     assert "Night package" in content
-    assert ">2.0<" in content
-    assert ">900.0<" in content
+    assert "Base hour" in content
+    assert ">900<" in content
+    assert ">500<" in content
+    assert content.count(">1400.0<") == 1
+    assert content.count(">1900.0<") == 1
