@@ -90,3 +90,17 @@ async def ws_club_availability(websocket: WebSocket, club_id: int):
         return
 
     await ClubService.handle_admin_websocket(websocket, club_id)
+
+
+from fastapi.responses import Response
+from src.modules.clubs.schemas import SClubStatisticsPeriod
+
+
+@router.post("/{club_id}/statistics/export", summary="Export club statistics (owner)")
+async def export_club_statistics(club_id: int, period: SClubStatisticsPeriod, user_id: int = Depends(RoleChecker([]))):
+    content, file_name = await ClubService.export_club_statistics(club_id, period)
+    return Response(
+        content=content,
+        media_type="application/vnd.ms-excel",
+        headers={"Content-Disposition": f'attachment; filename="{file_name}"'}
+    )

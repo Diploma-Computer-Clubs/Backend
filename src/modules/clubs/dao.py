@@ -56,3 +56,26 @@ class ClubDAO(BaseDAO):
             )
             result = await session.execute(query)
             return result.unique().scalars().all()
+
+    @classmethod
+    async def get_club_statistics_data(cls, club_id: int, start_time: datetime, end_time: datetime):
+        start_time = start_time.replace(tzinfo=None)
+        end_time = end_time.replace(tzinfo=None)
+
+        async with async_session_maker() as session:
+            query = (
+                select(Zone)
+                .filter_by(club_id=club_id)
+                .options(
+                    selectinload(Zone.packages),
+                    selectinload(Zone.computers)
+                    .selectinload(Computer.bookings.and_(
+                        Booking.is_checked_in == True,
+                        Booking.end_time <= datetime.now(),
+                        Booking.start_time < end_time,
+                        Booking.end_time > start_time
+                    ))
+                )
+            )
+            result = await session.execute(query)
+            return result.unique().scalars().all()

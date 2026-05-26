@@ -89,3 +89,8 @@ class WSPeriodPayload(BaseModel):
     mode: str
     start_time: Optional[datetime] = None
     end_time: Optional[datetime] = None
+
+
+class SClubStatisticsPeriod(BaseModel):
+    start_time: datetime
+    end_time: datetime
