@@ -278,7 +278,7 @@ class ClubService:
         return (actual_end - actual_start).total_seconds() / 3600
 
     @classmethod
-    def _build_statistics_excel(cls, club_name: str, start_time: datetime, end_time: datetime, rows: list[list]):
+    def _build_statistics_excel(cls, club_name: str, start_time: datetime, end_time: datetime, total_amount: float, rows: list[list]):
         from xml.sax.saxutils import escape
 
         xml = [
@@ -334,6 +334,7 @@ class ClubService:
         zones = await ClubDAO.get_club_statistics_data(club_id, start_time, end_time)
         period_hours = cls._get_statistics_overlap_hours(start_time, end_time, start_time, end_time)
         rows = []
+        total_amount = 0
 
         for zone in sorted(zones, key=lambda item: (item.name, item.id)):
             zone_total_amount = 0
@@ -377,6 +378,7 @@ class ClubService:
                 })
 
             zone_total_amount = round(zone_total_amount, 2)
+            total_amount += zone_total_amount
 
             if not zone_rows:
                 rows.append([zone.name, zone_total_amount, "", 0, round(period_hours, 2), "", 0, 0])
@@ -408,11 +410,11 @@ class ClubService:
                     ])
 
         file_name = f"club_{club_id}_statistics_{start_time.strftime('%Y%m%d_%H%M%S')}_{end_time.strftime('%Y%m%d_%H%M%S')}.xml"
-        content = cls._build_statistics_excel(club.name if club else f"Club {club_id}", start_time, end_time, rows)
+        content = cls._build_statistics_excel(club.name if club else f"Club {club_id}", start_time, end_time, round(total_amount, 2), rows)
         return content, file_name
 
     @classmethod
-    def _build_statistics_excel_by_date(cls, club_name: str, owner_name: str, start_date, end_date, rows: list[list]):
+    def _build_statistics_excel_by_date(cls, club_name: str, owner_name: str, start_date, end_date, total_amount: float, rows: list[list]):
         from xml.sax.saxutils import escape
 
         xml = [
@@ -429,7 +431,7 @@ class ClubService:
             ["Start date", start_date.strftime("%Y-%m-%d")],
             ["End date", end_date.strftime("%Y-%m-%d")],
             [],
-            ["Computer", "Zone", "Occupied hours", "Free hours", "Payment type", "Payment type price", "Usage count", "Computer total amount", "Zone total amount"],
+            ["Computer", "Zone", "Occupied hours", "Free hours", "Payment type", "Payment type price", "Usage count", "Computer total amount", "Zone total amount", "Total amount"],
         ]
 
         table_rows.extend(rows)
@@ -470,7 +472,8 @@ class ClubService:
         club = await ClubDAO.get_club_with_owner(club_id)
         zones = await ClubDAO.get_club_statistics_data(club_id, start_time, end_time)
         period_hours = round(cls._get_statistics_overlap_hours(start_time, end_time, start_time, end_time), 2)
-        rows = []
+        total_amount = 0
+        zones_data = []
 
         for zone in sorted(zones, key=lambda item: (item.name, item.id)):
             zone_total_amount = 0
@@ -533,18 +536,35 @@ class ClubService:
                     ])
 
             zone_total_amount = round(zone_total_amount, 2)
+            total_amount += zone_total_amount
+            zones_data.append({
+                "zone_name": zone.name,
+                "zone_total_amount": zone_total_amount,
+                "zone_rows": zone_rows,
+            })
+
+        total_amount = round(total_amount, 2)
+        rows = []
+        first_total_row = True
+
+        for zone_data in zones_data:
+            zone_name = zone_data["zone_name"]
+            zone_total_amount = zone_data["zone_total_amount"]
+            zone_rows = zone_data["zone_rows"]
 
             if not zone_rows:
-                rows.append(["", zone.name, 0, period_hours, "", "", 0, "", zone_total_amount])
+                rows.append(["", zone_name, 0, period_hours, "", "", 0, "", zone_total_amount, total_amount if first_total_row else ""])
+                first_total_row = False
                 continue
 
             first_zone_row = True
             for row in zone_rows:
-                rows.append(row + [zone_total_amount if first_zone_row else ""])
+                rows.append(row + [zone_total_amount if first_zone_row else "", total_amount if first_total_row else ""])
                 first_zone_row = False
+                first_total_row = False
 
         owner_name = club.owner.full_name if club and club.owner else ""
         club_name = club.name if club else f"Club {club_id}"
         file_name = f"club_{club_id}_statistics_{period.start_date.strftime('%Y%m%d')}_{period.end_date.strftime('%Y%m%d')}.xls"
-        content = cls._build_statistics_excel_by_date(club_name, owner_name, period.start_date, period.end_date, rows)
+        content = cls._build_statistics_excel_by_date(club_name, owner_name, period.start_date, period.end_date, total_amount, rows)
         return content, file_name

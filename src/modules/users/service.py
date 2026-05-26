@@ -82,29 +82,22 @@ class UserService:
         return True
 
     @classmethod
-    def _apply_reputation_recovery(cls, reputation: int, start_time: datetime, end_time: datetime):
-        weeks = int((end_time - start_time).total_seconds() // (7 * 24 * 3600))
-        if weeks <= 0:
-            return reputation
-        return min(100, reputation + weeks * 4)
+    def _get_missed_booking_penalty(cls, booking_end_time: datetime, now: datetime):
+        weeks = int((now - booking_end_time).total_seconds() // (7 * 24 * 3600))
+        if weeks >= 3:
+            return 0
+        return max(10 - weeks * 4, 0)
 
     @classmethod
     async def refresh_user_reputation(cls, user_id: int):
         missed_bookings = await BookingDAO.get_user_missed_bookings(user_id)
-
-        reputation = 100
         now = datetime.now()
-        last_booking_end_time = None
+        reputation = 100
 
         for booking in missed_bookings:
-            if last_booking_end_time:
-                reputation = cls._apply_reputation_recovery(reputation, last_booking_end_time, booking.end_time)
+            reputation -= cls._get_missed_booking_penalty(booking.end_time, now)
 
-            reputation = max(60, reputation - 10)
-            last_booking_end_time = booking.end_time
-
-        if last_booking_end_time:
-            reputation = cls._apply_reputation_recovery(reputation, last_booking_end_time, now)
+        reputation = max(60, min(100, reputation))
 
         await UserDAO.update_reputation(user_id, reputation)
         return reputation

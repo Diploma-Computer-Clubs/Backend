@@ -162,9 +162,11 @@ async def test_owner_can_export_club_statistics_to_excel(client, factory):
     assert ">71<" in content
     assert ">72<" in content
     assert "Zone total amount" in content
+    assert "Total amount" in content
     assert "Night package" in content
     assert "Base hour" in content
     assert ">900<" in content
     assert ">500<" in content
+    assert ">1900.0<" in content
     assert content.count(">1400.0<") == 1
-    assert content.count(">1900.0<") == 1
+    assert content.count(">1900.0<") == 2

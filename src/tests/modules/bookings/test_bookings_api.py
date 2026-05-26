@@ -402,3 +402,52 @@ async def test_user_reputation_restores_by_4_per_week(client, factory):
 
     updated_user = await UserDAO.get_user_by_id(user.id)
     assert updated_user.reputation == 98
+
+
+async def test_missed_booking_older_than_3_weeks_is_not_counted_for_reputation(client, factory):
+    city = await factory.create_city()
+    owner = await factory.create_user(role=Role.owner, city_id=city.id)
+    user = await factory.create_user(city_id=city.id)
+    club = await factory.create_club(owner_id=owner.id, city_id=city.id)
+    zone = await factory.create_zone(club_id=club.id)
+    first_computer = await factory.create_computer(zone_id=zone.id, number=1)
+    second_computer = await factory.create_computer(zone_id=zone.id, number=2)
+    now = datetime.now().replace(microsecond=0)
+
+    await factory.create_booking(
+        user_id=user.id,
+        club_id=club.id,
+        zone_id=zone.id,
+        computer_id=first_computer.id,
+        start_time=now - timedelta(days=22, hours=3),
+        end_time=now - timedelta(days=22, hours=1),
+    )
+
+    start_time, end_time = factory.booking_window()
+    response = await client.post(
+        "/bookings",
+        headers=factory.auth_headers(factory.access_token(user.id)),
+        json=[
+            {
+                "start_time": start_time.isoformat(),
+                "end_time": end_time.isoformat(),
+                "total_price": 1200,
+                "computer_id": first_computer.id,
+                "zone_id": zone.id,
+                "club_id": club.id,
+            },
+            {
+                "start_time": start_time.isoformat(),
+                "end_time": end_time.isoformat(),
+                "total_price": 1200,
+                "computer_id": second_computer.id,
+                "zone_id": zone.id,
+                "club_id": club.id,
+            }
+        ],
+    )
+
+    assert response.status_code == 200
+
+    updated_user = await UserDAO.get_user_by_id(user.id)
+    assert updated_user.reputation == 100
