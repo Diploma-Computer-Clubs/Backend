@@ -20,6 +20,7 @@ class SBookingShort(SBase):
     start_time: datetime
     end_time: datetime
     total_price: int
+    is_checked_in: bool
     full_name: Optional[str] = None
 
     @model_validator(mode='before')

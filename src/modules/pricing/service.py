@@ -16,7 +16,7 @@ class PricingService:
         packages = await PackageDAO.find_all(zone_id=zone_id)
         if not packages:
             return 0
-        base_hour = next((p for p in packages if not p.is_package and p.duration == 1), None)
+        base_hour = next((p for p in packages if p.duration == 1), None)
         base_price = base_hour.price
         dp = [float('inf')] * (total_hours + 1)
         dp[0] = 0

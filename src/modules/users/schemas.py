@@ -15,6 +15,7 @@ class SUserGetData(SUserBase):
     role: Role
     city: str = Field(..., description="Название города")
     club_ids: List[int] = []
+    reputation: int
     staff_role: Optional[str] = None
     owner: Optional[str] = "None"
 

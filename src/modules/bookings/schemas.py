@@ -43,7 +43,6 @@ class SBookingView(BaseModel):
     total_price: int
     start_time: datetime
     end_time: datetime
-
     club: SClubInfo
     zone: SZoneInfo
     computer: SComputerInfo
