@@ -4,6 +4,7 @@ import pytest
 
 from src.modules.bookings.dao import BookingDAO
 from src.modules.users.dao import UserDAO
+from src.modules.users.service import UserService
 from src.shared.schemas.schemas import Role
 
 
@@ -203,24 +204,8 @@ async def test_user_with_80_reputation_can_book_only_1_computer(client, factory)
     zone = await factory.create_zone(club_id=club.id)
     first_computer = await factory.create_computer(zone_id=zone.id, number=1)
     second_computer = await factory.create_computer(zone_id=zone.id, number=2)
-    now = datetime.now().replace(microsecond=0)
 
-    await factory.create_booking(
-        user_id=user.id,
-        club_id=club.id,
-        zone_id=zone.id,
-        computer_id=first_computer.id,
-        start_time=now - timedelta(days=2, hours=3),
-        end_time=now - timedelta(days=2, hours=1),
-    )
-    await factory.create_booking(
-        user_id=user.id,
-        club_id=club.id,
-        zone_id=zone.id,
-        computer_id=second_computer.id,
-        start_time=now - timedelta(days=1, hours=3),
-        end_time=now - timedelta(days=1, hours=1),
-    )
+    await UserDAO.update_reputation(user.id, 80)
 
     start_time, end_time = factory.booking_window()
     response = await client.post(
@@ -262,15 +247,7 @@ async def test_user_with_70_reputation_cannot_book_more_than_2_hours_ahead_or_mo
     computer = await factory.create_computer(zone_id=zone.id)
     now = datetime.now().replace(microsecond=0)
 
-    for days_ago in [3, 2, 1]:
-        await factory.create_booking(
-            user_id=user.id,
-            club_id=club.id,
-            zone_id=zone.id,
-            computer_id=computer.id,
-            start_time=now - timedelta(days=days_ago, hours=3),
-            end_time=now - timedelta(days=days_ago, hours=1),
-        )
+    await UserDAO.update_reputation(user.id, 70)
 
     response_ahead = await client.post(
         "/bookings",
@@ -320,17 +297,8 @@ async def test_user_with_60_reputation_cannot_create_booking(client, factory):
     club = await factory.create_club(owner_id=owner.id, city_id=city.id)
     zone = await factory.create_zone(club_id=club.id)
     computer = await factory.create_computer(zone_id=zone.id)
-    now = datetime.now().replace(microsecond=0)
 
-    for days_ago in [4, 3, 2, 1]:
-        await factory.create_booking(
-            user_id=user.id,
-            club_id=club.id,
-            zone_id=zone.id,
-            computer_id=computer.id,
-            start_time=now - timedelta(days=days_ago, hours=3),
-            end_time=now - timedelta(days=days_ago, hours=1),
-        )
+    await UserDAO.update_reputation(user.id, 60)
 
     start_time, end_time = factory.booking_window()
     response = await client.post(
@@ -357,97 +325,47 @@ async def test_user_with_60_reputation_cannot_create_booking(client, factory):
 
 async def test_user_reputation_restores_by_4_per_week(client, factory):
     city = await factory.create_city()
-    owner = await factory.create_user(role=Role.owner, city_id=city.id)
     user = await factory.create_user(city_id=city.id)
-    club = await factory.create_club(owner_id=owner.id, city_id=city.id)
-    zone = await factory.create_zone(club_id=club.id)
-    first_computer = await factory.create_computer(zone_id=zone.id, number=1)
-    second_computer = await factory.create_computer(zone_id=zone.id, number=2)
-    now = datetime.now().replace(microsecond=0)
 
-    await factory.create_booking(
-        user_id=user.id,
-        club_id=club.id,
-        zone_id=zone.id,
-        computer_id=first_computer.id,
-        start_time=now - timedelta(days=14, hours=3),
-        end_time=now - timedelta(days=14, hours=1),
-    )
-
-    start_time, end_time = factory.booking_window()
-    response = await client.post(
-        "/bookings",
-        headers=factory.auth_headers(factory.access_token(user.id)),
-        json=[
-            {
-                "start_time": start_time.isoformat(),
-                "end_time": end_time.isoformat(),
-                "total_price": 1200,
-                "computer_id": first_computer.id,
-                "zone_id": zone.id,
-                "club_id": club.id,
-            },
-            {
-                "start_time": start_time.isoformat(),
-                "end_time": end_time.isoformat(),
-                "total_price": 1200,
-                "computer_id": second_computer.id,
-                "zone_id": zone.id,
-                "club_id": club.id,
-            }
-        ],
-    )
-
-    assert response.status_code == 200
+    await UserDAO.update_reputation(user.id, 90)
+    await UserService.add_reputation(user.id, 4)
 
     updated_user = await UserDAO.get_user_by_id(user.id)
-    assert updated_user.reputation == 98
+    assert updated_user.reputation == 94
 
 
-async def test_missed_booking_older_than_3_weeks_is_not_counted_for_reputation(client, factory):
+async def test_inactive_booking_does_not_block_time_slot(client, factory):
     city = await factory.create_city()
     owner = await factory.create_user(role=Role.owner, city_id=city.id)
-    user = await factory.create_user(city_id=city.id)
+    first_user = await factory.create_user(city_id=city.id)
+    second_user = await factory.create_user(city_id=city.id)
     club = await factory.create_club(owner_id=owner.id, city_id=city.id)
     zone = await factory.create_zone(club_id=club.id)
-    first_computer = await factory.create_computer(zone_id=zone.id, number=1)
-    second_computer = await factory.create_computer(zone_id=zone.id, number=2)
-    now = datetime.now().replace(microsecond=0)
+    computer = await factory.create_computer(zone_id=zone.id)
+    start_time, end_time = factory.booking_window()
 
     await factory.create_booking(
-        user_id=user.id,
+        user_id=first_user.id,
         club_id=club.id,
         zone_id=zone.id,
-        computer_id=first_computer.id,
-        start_time=now - timedelta(days=22, hours=3),
-        end_time=now - timedelta(days=22, hours=1),
+        computer_id=computer.id,
+        start_time=start_time,
+        end_time=end_time,
+        is_active=False,
     )
 
-    start_time, end_time = factory.booking_window()
     response = await client.post(
         "/bookings",
-        headers=factory.auth_headers(factory.access_token(user.id)),
+        headers=factory.auth_headers(factory.access_token(second_user.id)),
         json=[
             {
                 "start_time": start_time.isoformat(),
                 "end_time": end_time.isoformat(),
-                "total_price": 1200,
-                "computer_id": first_computer.id,
-                "zone_id": zone.id,
-                "club_id": club.id,
-            },
-            {
-                "start_time": start_time.isoformat(),
-                "end_time": end_time.isoformat(),
-                "total_price": 1200,
-                "computer_id": second_computer.id,
+                "total_price": 1400,
+                "computer_id": computer.id,
                 "zone_id": zone.id,
                 "club_id": club.id,
             }
         ],
     )
-
     assert response.status_code == 200
-
-    updated_user = await UserDAO.get_user_by_id(user.id)
-    assert updated_user.reputation == 100

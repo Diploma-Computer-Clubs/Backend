@@ -188,6 +188,7 @@ class TestFactory:
         start_time: datetime | None = None,
         end_time: datetime | None = None,
         total_price: int = 1000,
+        is_active: bool = True,
     ) -> Booking:
         start_time = start_time or self.booking_window()[0]
         end_time = end_time or (start_time + timedelta(hours=2))
@@ -201,6 +202,7 @@ class TestFactory:
                 start_time=start_time,
                 end_time=end_time,
                 total_price=total_price,
+                is_active=is_active,
             )
             session.add(booking)
             await session.commit()

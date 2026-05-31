@@ -1,3 +1,5 @@
+from typing import List
+
 from fastapi import APIRouter, UploadFile, File, Depends
 
 from src.modules.media.schemas import SImageGet
@@ -11,6 +13,6 @@ async def upload_image(file: UploadFile = File(...), auth: int = Depends(RoleChe
     image_path = await MediaService.save_image(file)
     return {"image_url": image_path}
 
-@router.get('/images', summary="Get images list", response_model=SImageGet)
+@router.get('/images', summary="Get images list", response_model=List[SImageGet])
 async def get_images():
-    return {"status": True}
+    return await MediaService.get_images()

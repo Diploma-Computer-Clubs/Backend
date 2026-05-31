@@ -29,3 +29,5 @@ class Club(Base):
 
     staff_members: Mapped[list["ClubStaff"]] = relationship("ClubStaff", back_populates="club")
 
+    map_objects: Mapped[list["MapObject"]] = relationship("MapObject", back_populates="club", cascade="all, delete-orphan", passive_deletes=True)
+

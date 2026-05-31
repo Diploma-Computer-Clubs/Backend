@@ -22,3 +22,18 @@ class MediaService:
             buffer.write(content)
 
         return f"/{file_path.as_posix()}"
+
+    @classmethod
+    async def get_images(cls) -> list[dict]:
+        cls.UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+        allowed = {"jpg", "jpeg", "png", "webp"}
+        images = []
+
+        for file_path in cls.UPLOAD_DIR.iterdir():
+            if file_path.is_file() and file_path.suffix.lower().lstrip(".") in allowed:
+                images.append({
+                    "name": file_path.name,
+                    "path": f"/{file_path.as_posix()}",
+                })
+
+        return images

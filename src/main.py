@@ -17,6 +17,7 @@ from src.modules.computers.router import router as computers_router
 from src.modules.bookings.router import router as bookings_router
 from src.modules.pricing.router import router as pricing_router
 from src.modules.club_staff.router import router as clubs_staff_router
+from src.modules.map_objects.router import router as map_objects_router
 from fastapi.staticfiles import StaticFiles
 
 from src.shared.configurations.database import engine
@@ -30,6 +31,7 @@ from src.modules.computers.model import Computer
 from src.modules.bookings.model import Booking
 from src.modules.pricing.model import ZonePackage
 from src.modules.club_staff.model import ClubStaff
+from src.modules.map_objects.model import MapObject
 
 
 @asynccontextmanager
@@ -43,6 +45,7 @@ async def lifespan(app: FastAPI):
         await conn.run_sync(ZonePackage.__table__.create, checkfirst=True)
         await conn.run_sync(Booking.__table__.create, checkfirst=True)
         await conn.run_sync(ClubStaff.__table__.create, checkfirst=True)
+        await conn.run_sync(MapObject.__table__.create, checkfirst=True)
 
     async with engine.connect() as conn:
         if conn.dialect.name == "postgresql":
@@ -68,6 +71,7 @@ app.include_router(computers_router)
 app.include_router(bookings_router)
 app.include_router(pricing_router)
 app.include_router(clubs_staff_router)
+app.include_router(map_objects_router)
 app.add_api_websocket_route("/{club_id}/availability/ws", ws_club_availability, name="ws_club_availability_legacy")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 

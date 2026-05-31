@@ -1,9 +1,32 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from datetime import time, datetime
 from typing import Optional, List
 
 
 class SZonePackage(BaseModel):
+    name: str
+    start_time: Optional[time] = None
+    end_time: Optional[time] = None
+    duration: int
+    price: int
+    is_package: bool = False
+    zone_id: int
+
+
+class SZonePackageGet(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    name: str
+    start_time: Optional[time] = None
+    end_time: Optional[time] = None
+    duration: int
+    price: int
+    is_package: bool
+    zone_id: int
+
+
+class SZonePackageUpdate(BaseModel):
     name: str
     start_time: Optional[time] = None
     end_time: Optional[time] = None

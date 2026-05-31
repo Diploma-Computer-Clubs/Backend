@@ -1,9 +1,10 @@
+from datetime import datetime
 from typing import List
 
 from sqlalchemy import func
 
 from src.modules.computers.dao import ComputerDAO
-from src.modules.computers.schemas import SComputersCreate
+from src.modules.computers.schemas import SComputersCreate, SComputerUpdate
 
 class ComputerService:
 
@@ -15,6 +16,13 @@ class ComputerService:
     @classmethod
     async def get_computers(cls, zone_id: int):
         return await ComputerDAO.find_all(zone_id=zone_id)
+
+    @classmethod
+    async def update_computer(cls, computer_id: int, computer: SComputerUpdate):
+        data = computer.model_dump()
+        data["updated_at"] = datetime.now()
+        result = await ComputerDAO.update(filter_by={"id": computer_id}, **data)
+        return result > 0
 
     @classmethod
     async def turn_on_computer(cls, computer_id: int):

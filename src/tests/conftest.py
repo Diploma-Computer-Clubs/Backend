@@ -87,6 +87,24 @@ def sms_code_store() -> dict[str, str]:
 
 
 @pytest.fixture(autouse=True)
+def patch_celery_tasks(monkeypatch: pytest.MonkeyPatch):
+    class FakeAsyncResult:
+        id = "fake-task-id"
+
+    def fake_apply_async(*args, **kwargs):
+        return FakeAsyncResult()
+
+    monkeypatch.setattr(
+        "src.modules.bookings.service.deactivate_booking_if_no_show.apply_async",
+        fake_apply_async,
+    )
+    monkeypatch.setattr(
+        "src.modules.bookings.service.restore_reputation_task.apply_async",
+        fake_apply_async,
+    )
+
+
+@pytest.fixture(autouse=True)
 def patch_external_services(monkeypatch: pytest.MonkeyPatch, sms_code_store: dict[str, str]):
     async def fake_get_coordinates(_cls, address: str) -> tuple[float, float]:
         seed = sum(ord(char) for char in address)

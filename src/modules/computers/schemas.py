@@ -18,3 +18,10 @@ class SComputerGet(BaseModel):
     zone_id: int
     x: Optional[float] = None
     y: Optional[float] = None
+
+
+class SComputerUpdate(BaseModel):
+    number: int
+    specification: str
+    x: Optional[float] = None
+    y: Optional[float] = None

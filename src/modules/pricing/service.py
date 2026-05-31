@@ -1,9 +1,9 @@
 import math
-from typing import List
-from src.modules.pricing.dao import PackageDAO
-from src.modules.pricing.schemas import SBulkPriceRequest
-
 from datetime import datetime, timedelta
+from typing import List
+
+from src.modules.pricing.dao import PackageDAO
+from src.modules.pricing.schemas import SBulkPriceRequest, SZonePackageUpdate
 
 
 class PricingService:
@@ -132,3 +132,20 @@ class PricingService:
             }
 
         return result
+
+    @classmethod
+    async def get_club_packages(cls, club_id: int):
+        return await PackageDAO.find_by_club_id(club_id)
+
+    @classmethod
+    async def update_package(cls, package_id: int, package_data: SZonePackageUpdate):
+        result = await PackageDAO.update(
+            filter_by={"id": package_id},
+            **package_data.model_dump(),
+            updated_at=datetime.now(),
+        )
+        return result > 0
+
+    @classmethod
+    async def delete_package(cls, package_id: int):
+        return await PackageDAO.delete(id=package_id)

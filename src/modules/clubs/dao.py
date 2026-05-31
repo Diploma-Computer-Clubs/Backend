@@ -48,7 +48,8 @@ class ClubDAO(BaseDAO):
                 .filter_by(club_id=club_id)
                 .options(
                     selectinload(Zone.computers)
-                    .selectinload(Computer.bookings.and_(
+                    .                    selectinload(Computer.bookings.and_(
+                        Booking.is_active == True,
                         Booking.start_time < end_time,
                         Booking.end_time > start_time
                     )).joinedload(Booking.user)

@@ -61,6 +61,7 @@ class SClubChange(SBase):
     image_url: Optional[str] = None
     image_price_url: Optional[str] = None
     img_background: Optional[str] = None
+    rating: Optional[int] = None
     promos: Optional[List[SPromoItem]] = None
     description: Optional[str] = None
     city_id: Optional[int] = None

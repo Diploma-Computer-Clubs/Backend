@@ -3,7 +3,6 @@ import random
 from datetime import datetime
 
 from sqlalchemy import func
-from src.modules.bookings.dao import BookingDAO
 from src.modules.users.dao import UserDAO
 from src.modules.users.schemas import SUser, SUserPostData
 from src.shared.schemas.schemas import Role
@@ -82,22 +81,20 @@ class UserService:
         return True
 
     @classmethod
-    def _get_missed_booking_penalty(cls, booking_end_time: datetime, now: datetime):
-        weeks = int((now - booking_end_time).total_seconds() // (7 * 24 * 3600))
-        if weeks >= 3:
-            return 0
-        return max(10 - weeks * 4, 0)
+    async def get_user_reputation(cls, user_id: int):
+        user = await UserDAO.get_user_by_id(user_id)
+        return user.reputation if user else 100
 
     @classmethod
-    async def refresh_user_reputation(cls, user_id: int):
-        missed_bookings = await BookingDAO.get_user_missed_bookings(user_id)
-        now = datetime.now()
-        reputation = 100
+    async def deduct_reputation(cls, user_id: int, amount: int):
+        user = await UserDAO.get_user_by_id(user_id)
+        reputation = max(60, min(100, user.reputation - amount))
+        await UserDAO.update_reputation(user_id, reputation)
+        return reputation
 
-        for booking in missed_bookings:
-            reputation -= cls._get_missed_booking_penalty(booking.end_time, now)
-
-        reputation = max(60, min(100, reputation))
-
+    @classmethod
+    async def add_reputation(cls, user_id: int, amount: int):
+        user = await UserDAO.get_user_by_id(user_id)
+        reputation = max(60, min(100, user.reputation + amount))
         await UserDAO.update_reputation(user_id, reputation)
         return reputation

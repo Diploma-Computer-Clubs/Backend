@@ -1,9 +1,10 @@
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from typing import List
 from fastapi import HTTPException, status
 
 from src.modules.bookings.dao import BookingDAO
 from src.modules.bookings.schemas import SBookingCreate, SBookingCheckIn
+from src.modules.bookings.tasks import deactivate_booking_if_no_show, restore_reputation_task
 from src.modules.computers.dao import ComputerDAO
 from src.modules.users.service import UserService
 
@@ -12,7 +13,7 @@ class BookingService:
 
     @classmethod
     async def _check_reputation_rules(cls, bookings_info: List[SBookingCreate], user_id: int):
-        reputation = await UserService.refresh_user_reputation(user_id)
+        reputation = await UserService.get_user_reputation(user_id)
         now = datetime.now()
 
         if reputation <= 69:
@@ -71,6 +72,43 @@ class BookingService:
         return prepared_bookings
 
     @classmethod
+    def _schedule_booking_tasks(cls, bookings):
+        groups = {}
+        for booking in bookings:
+            key = (booking.user_id, booking.start_time, booking.end_time)
+            if key not in groups:
+                groups[key] = booking
+
+        for booking in groups.values():
+            countdown = 3600
+            deactivate_booking_if_no_show.apply_async(args=[booking.id],countdown=countdown)
+
+    @classmethod
+    def _schedule_reputation_restore(cls, user_id: int):
+        week_seconds = 7 * 24 * 3600
+        for week in range(1, 4):
+            restore_reputation_task.apply_async(args=[user_id], countdown=week * week_seconds)
+
+    @classmethod
+    async def process_no_show(cls, booking_id: int):
+        booking = await BookingDAO.find_one_or_none(id=booking_id)
+        if not booking or not booking.is_active:
+            return
+
+        if booking.is_checked_in:
+            return
+
+        related = await BookingDAO.get_related_bookings(
+            booking.user_id, booking.start_time, booking.end_time
+        )
+        if not any(b.is_active for b in related):
+            return
+
+        await BookingDAO.deactivate_related(booking.user_id, booking.start_time, booking.end_time)
+        await UserService.deduct_reputation(booking.user_id, 10)
+        cls._schedule_reputation_restore(booking.user_id)
+
+    @classmethod
     async def create_booking(cls, bookings_info: List[SBookingCreate], user_id: int):
         await cls._check_reputation_rules(bookings_info, user_id)
         existing = await BookingDAO.get_active_user_booking(user_id)
@@ -78,12 +116,16 @@ class BookingService:
             raise HTTPException(status_code=400, detail="You already have an active booking")
 
         prepared_bookings = await cls._prepare_and_validate_bookings(bookings_info, user_id)
-        return await BookingDAO.add_list(prepared_bookings)
+        bookings = await BookingDAO.add_list(prepared_bookings)
+        cls._schedule_booking_tasks(bookings)
+        return bookings
 
     @classmethod
     async def create_admin_booking(cls, bookings_info: List[SBookingCreate], user_id: int):
         prepared_bookings = await cls._prepare_and_validate_bookings(bookings_info, user_id)
-        return await BookingDAO.add_list(prepared_bookings)
+        bookings = await BookingDAO.add_list(prepared_bookings)
+        cls._schedule_booking_tasks(bookings)
+        return bookings
 
     @classmethod
     async def get_user_booking(cls, user_id: int):
@@ -96,6 +138,11 @@ class BookingService:
             raise HTTPException(status_code=404, detail="Booking not found")
         if booking.user_id != user_id:
             raise HTTPException(status_code=403, detail="Not allowed to delete others' bookings")
+
+        now = datetime.now()
+        if booking.start_time < now + timedelta(minutes=30):
+            raise HTTPException(status_code=400, detail="Booking cannot be deleted less than 30 minutes before start")
+
         return await BookingDAO.delete(id=booking_id)
 
     @classmethod
@@ -107,6 +154,14 @@ class BookingService:
 
     @classmethod
     async def update_check_in_status(cls, booking_info: SBookingCheckIn):
-        result = await BookingDAO.update_check_in_status(booking_info.booking_id, booking_info.is_checked_in)
-        return result > 0
+        booking = await BookingDAO.find_one_or_none(id=booking_info.booking_id)
+        if not booking:
+            return False
 
+        result = await BookingDAO.update_check_in_related(
+            booking.user_id,
+            booking.start_time,
+            booking.end_time,
+            booking_info.is_checked_in,
+        )
+        return result > 0
