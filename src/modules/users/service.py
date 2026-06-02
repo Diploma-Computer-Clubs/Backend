@@ -63,8 +63,6 @@ class UserService:
     async def request_verification(cls, phone: str) -> bool:
         code = str(random.randint(100000, 999999))
         await set_code(phone, code)
-        logging.basicConfig(level=logging.INFO)
-        logging.info(f"VERIFICATION CODE FOR {phone}: {code}")
         try:
             return await send_sms_via_twilio(phone, f"Your code: {code}")
         except Exception as e:
