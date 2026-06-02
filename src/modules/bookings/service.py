@@ -80,7 +80,7 @@ class BookingService:
                 groups[key] = booking
 
         for booking in groups.values():
-            countdown = 3600
+            countdown = 5
             deactivate_booking_if_no_show.apply_async(args=[booking.id],countdown=countdown)
 
     @classmethod
