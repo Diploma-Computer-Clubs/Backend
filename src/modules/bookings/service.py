@@ -39,8 +39,6 @@ class BookingService:
         prepared_bookings = []
 
         for info in bookings_info:
-            if info.start_time < now + timedelta(minutes=30):
-                raise HTTPException(status_code=400, detail="Booking must be at least 30 min ahead")
 
             if (info.end_time - info.start_time) > timedelta(hours=12):
                 raise HTTPException(status_code=400, detail="Max duration is 12 hours")
@@ -80,8 +78,9 @@ class BookingService:
                 groups[key] = booking
 
         for booking in groups.values():
-            countdown = 3600
-            deactivate_booking_if_no_show.apply_async(args=[booking.id],countdown=countdown)
+            eta = booking.start_time + timedelta(hours=1)
+            countdown = max(0, int((eta - datetime.now()).total_seconds()))
+            deactivate_booking_if_no_show.apply_async(args=[booking.id], countdown=countdown)
 
     @classmethod
     def _schedule_reputation_restore(cls, user_id: int):
