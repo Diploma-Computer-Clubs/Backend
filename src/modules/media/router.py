@@ -8,8 +8,8 @@ from src.shared.dependencies.dependencies import RoleChecker
 
 router = APIRouter(prefix='/media', tags=['Media Management'])
 
-@router.post("/images", summary="Upload image (owner)")
-async def upload_image(file: UploadFile = File(...), auth: int = Depends(RoleChecker([]))):
+@router.post("/images", summary="Upload image")
+async def upload_image(file: UploadFile = File(...)):
     image_path = await MediaService.save_image(file)
     return {"image_url": image_path}
 

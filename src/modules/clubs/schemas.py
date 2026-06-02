@@ -56,6 +56,7 @@ class SClubCreate(SClubBase):
     city_name: str
 
 class SClubChange(SBase):
+    id: int
     name: Optional[str] = None
     address: Optional[str] = None
     image_url: Optional[str] = None

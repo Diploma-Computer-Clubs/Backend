@@ -68,7 +68,7 @@ class ClubService:
     async def update_club(cls, club_info: SClubChange) -> bool:
         lat, lon = await cls._get_club_coordinates(club_info.city_name, club_info.address)
 
-        club_data = club_info.model_dump()
+        club_data = club_info.model_dump(exclude_unset=True)
         club_id = club_data.pop("id", None)
         club_data.pop("city_name", None)
 
@@ -77,6 +77,7 @@ class ClubService:
             "longitude": lon,
             "updated_at": func.now()
         })
+        club_data["updated_at"] = func.now()
 
         result = await ClubDAO.update(filter_by={"id": club_id}, **club_data)
         return result > 0
