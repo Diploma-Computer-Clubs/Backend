@@ -13,6 +13,13 @@ class BaseDAO:
             return result.scalars().all()
 
     @classmethod
+    async def find_all_unique(cls, *options, **filter_by):
+        async with async_session_maker() as session:
+            query = select(cls.model).filter_by(**filter_by).options(*options)
+            result = await session.execute(query)
+            return result.scalars().unique().all()
+
+    @classmethod
     async def find_one_or_none(cls, *options, **filter_by):
         async with async_session_maker() as session:
             query = select(cls.model).filter_by(**filter_by).options(*options)

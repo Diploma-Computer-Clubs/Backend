@@ -18,6 +18,10 @@ class ClubDAO(BaseDAO):
         return await cls.find_one_or_none(joinedload(cls.model.zones), id=club_id)
 
     @classmethod
+    async def get_clubs(cls, user_id: int):
+        return await cls.find_all_unique(joinedload(cls.model.zones), owner_id=user_id)
+
+    @classmethod
     async def find_full_data(cls, city_id: int):
         return await cls.find_all(
             joinedload(cls.model.city),

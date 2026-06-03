@@ -40,8 +40,8 @@ class ClubService:
         return await ClubDAO.add(**club_data)
 
     @classmethod
-    async def get_clubs(cls):
-        return await ClubDAO.find_all()
+    async def get_clubs(cls, user_id: int):
+        return await ClubDAO.get_clubs(user_id)
 
     @classmethod
     async def get_club(cls, club_id: int):

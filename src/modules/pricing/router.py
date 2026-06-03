@@ -10,7 +10,7 @@ from src.shared.dependencies.dependencies import RoleChecker
 router = APIRouter(prefix="/pricing", tags=["Pricing management"])
 
 @router.get("/", summary="Get club packages (owner)", response_model=List[SZonePackageGet])
-async def get_packages(club_id: int):
+async def get_packages(club_id: int, auth: int = Depends(RoleChecker([]))):
     return await PricingService.get_club_packages(club_id)
 
 

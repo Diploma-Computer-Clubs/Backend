@@ -41,7 +41,7 @@ async def delete_club(club_id: int, user_id: int = Depends(RoleChecker([]))):
 async def get_clubs_map(city_id: int):
     return await ClubService.get_clubs_by_city(city_id)
 
-@router.get("/search", summary="Get clubs list by city", response_model=list[SClubMainInfo])
+@router.get("/search", summary="Get clubs list by city", response_model=List[SClubMainInfo])
 async def get_main_info(city_id: int):
     result = await ClubService.get_clubs_by_city(city_id)
     if not result:
@@ -53,6 +53,9 @@ async def get_clubs_count(city_id: int):
     count = await ClubService.get_clubs_count(city_id)
     return {"city_id": city_id, "total_clubs": count}
 
+@router.get("/clubs", summary="Get detailed clubs info", response_model=List[SClubMainInfo])
+async def get_clubs_info(user_id: int = Depends(get_current_user_id)):
+    return await ClubService.get_clubs(user_id)
 
 @router.get("/{club_id}", summary="Get detailed club info", response_model=SClubMainInfo)
 async def get_club_info(club_id: int):
