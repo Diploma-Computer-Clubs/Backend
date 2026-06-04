@@ -24,4 +24,7 @@ celery_app.conf.update(
     result_serializer="json",
     timezone="UTC",
     enable_utc=True,
+    broker_transport_options={
+        "visibility_timeout": 60 * 24 * 3600,
+    },
 )

@@ -39,8 +39,8 @@ class BookingService:
         prepared_bookings = []
 
         for info in bookings_info:
-            if info.start_time < now + timedelta(minutes=30):
-                raise HTTPException(status_code=400, detail="Booking must be at least 30 min ahead")
+            #if info.start_time < now + timedelta(minutes=30):
+             #   raise HTTPException(status_code=400, detail="Booking must be at least 30 min ahead")
 
             if (info.end_time - info.start_time) > timedelta(hours=12):
                 raise HTTPException(status_code=400, detail="Max duration is 12 hours")
@@ -82,13 +82,21 @@ class BookingService:
         for booking in groups.values():
             eta = booking.start_time + timedelta(hours=1)
             countdown = max(0, int((eta - datetime.now()).total_seconds()))
-            deactivate_booking_if_no_show.apply_async(args=[booking.id], countdown=countdown)
+            deactivate_booking_if_no_show.apply_async(
+                args=[booking.id],
+                countdown=countdown,
+                task_id=f"deactivate-no-show-{booking.id}",
+            )
 
     @classmethod
     def _schedule_reputation_restore(cls, user_id: int):
         week_seconds = 7 * 24 * 3600
         for week in range(1, 4):
-            restore_reputation_task.apply_async(args=[user_id], countdown=week * week_seconds)
+            restore_reputation_task.apply_async(
+                args=[user_id],
+                countdown=week * week_seconds,
+                task_id=f"restore-reputation-{user_id}-week-{week}",
+            )
 
     @classmethod
     async def process_no_show(cls, booking_id: int):

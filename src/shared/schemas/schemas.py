@@ -1,5 +1,5 @@
 import re
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, validator, field_validator
 from enum import Enum
 
 class Role(str, Enum):
@@ -17,7 +17,8 @@ class ZoneName(str, Enum):
 class SUserBase(BaseModel):
     phone_number: str = Field(..., description="Phone number in int-nal format, starts with '+'")
 
-    @validator("phone_number")
+    @field_validator("phone_number")
+    @classmethod
     def validate_phone_number(cls, value):
         if not re.match(r'^\+\d{11,15}$', value):
             raise ValueError('Phone number must start with "+" and contain 11-15 digits')
