@@ -39,8 +39,8 @@ class BookingService:
         prepared_bookings = []
 
         for info in bookings_info:
-            #if info.start_time < now + timedelta(minutes=30):
-             #   raise HTTPException(status_code=400, detail="Booking must be at least 30 min ahead")
+            if info.start_time < now + timedelta(minutes=30):
+                raise HTTPException(status_code=400, detail="Booking must be at least 30 min ahead")
 
             if (info.end_time - info.start_time) > timedelta(hours=12):
                 raise HTTPException(status_code=400, detail="Max duration is 12 hours")
