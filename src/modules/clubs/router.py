@@ -104,6 +104,6 @@ async def export_club_statistics(club_id: int, period: SClubStatisticsDatePeriod
     content, file_name = await ClubService.export_club_statistics_by_date(club_id, period)
     return Response(
         content=content,
-        media_type="application/vnd.ms-excel",
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-Disposition": f'attachment; filename="{file_name}"'}
     )

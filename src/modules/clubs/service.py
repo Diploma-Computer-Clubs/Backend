@@ -279,17 +279,24 @@ class ClubService:
         return (actual_end - actual_start).total_seconds() / 3600
 
     @classmethod
+    def _build_xlsx(cls, table_rows: list[list]):
+        from io import BytesIO
+
+        from openpyxl import Workbook
+
+        workbook = Workbook()
+        sheet = workbook.active
+        sheet.title = "Statistics"
+
+        for row in table_rows:
+            sheet.append([value if value is not None else "" for value in row])
+
+        buffer = BytesIO()
+        workbook.save(buffer)
+        return buffer.getvalue()
+
+    @classmethod
     def _build_statistics_excel(cls, club_name: str, start_time: datetime, end_time: datetime, total_amount: float, rows: list[list]):
-        from xml.sax.saxutils import escape
-
-        xml = [
-            '<?xml version="1.0" encoding="UTF-8"?>',
-            '<?mso-application progid="Excel.Sheet"?>',
-            '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">',
-            '<Worksheet ss:Name="Statistics">',
-            '<Table>',
-        ]
-
         table_rows = [
             ["Club", club_name],
             ["Start time", start_time.strftime("%Y-%m-%d")],
@@ -297,25 +304,8 @@ class ClubService:
             [],
             ["Zone", "Zone total amount", "Computer", "Occupied hours", "Free hours", "Payment type", "Usage count", "Computer total amount"],
         ]
-
         table_rows.extend(rows)
-
-        for row in table_rows:
-            xml.append('<Row>')
-            for value in row:
-                if isinstance(value, (int, float)):
-                    xml.append(f'<Cell><Data ss:Type="Number">{value}</Data></Cell>')
-                else:
-                    xml.append(f'<Cell><Data ss:Type="String">{escape("" if value is None else str(value))}</Data></Cell>')
-            xml.append('</Row>')
-
-        xml.extend([
-            '</Table>',
-            '</Worksheet>',
-            '</Workbook>',
-        ])
-
-        return ''.join(xml).encode("utf-8")
+        return cls._build_xlsx(table_rows)
 
     @classmethod
     async def export_club_statistics(cls, club_id: int, period):
@@ -410,22 +400,12 @@ class ClubService:
                         item["computer_total_amount"],
                     ])
 
-        file_name = f"club_{club_id}_statistics_{start_time.strftime('%Y%m%d_%H%M%S')}_{end_time.strftime('%Y%m%d_%H%M%S')}.xml"
+        file_name = f"club_{club_id}_statistics_{start_time.strftime('%Y%m%d_%H%M%S')}_{end_time.strftime('%Y%m%d_%H%M%S')}.xlsx"
         content = cls._build_statistics_excel(club.name if club else f"Club {club_id}", start_time, end_time, round(total_amount, 2), rows)
         return content, file_name
 
     @classmethod
     def _build_statistics_excel_by_date(cls, club_name: str, owner_name: str, start_date, end_date, total_amount: float, rows: list[list]):
-        from xml.sax.saxutils import escape
-
-        xml = [
-            '<?xml version="1.0" encoding="UTF-8"?>',
-            '<?mso-application progid="Excel.Sheet"?>',
-            '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">',
-            '<Worksheet ss:Name="Statistics">',
-            '<Table>',
-        ]
-
         table_rows = [
             ["Club", club_name],
             ["Owner", owner_name],
@@ -434,25 +414,8 @@ class ClubService:
             [],
             ["Computer", "Zone", "Occupied hours", "Free hours", "Payment type", "Payment type price", "Usage count", "Computer total amount", "Zone total amount", "Total amount"],
         ]
-
         table_rows.extend(rows)
-
-        for row in table_rows:
-            xml.append('<Row>')
-            for value in row:
-                if isinstance(value, (int, float)):
-                    xml.append(f'<Cell><Data ss:Type="Number">{value}</Data></Cell>')
-                else:
-                    xml.append(f'<Cell><Data ss:Type="String">{escape("" if value is None else str(value))}</Data></Cell>')
-            xml.append('</Row>')
-
-        xml.extend([
-            '</Table>',
-            '</Worksheet>',
-            '</Workbook>',
-        ])
-
-        return ''.join(xml).encode("utf-8")
+        return cls._build_xlsx(table_rows)
 
     @classmethod
     async def export_club_statistics_by_date(cls, club_id: int, period):
@@ -566,6 +529,6 @@ class ClubService:
 
         owner_name = club.owner.full_name if club and club.owner else ""
         club_name = club.name if club else f"Club {club_id}"
-        file_name = f"club_{club_id}_statistics_{period.start_date.strftime('%Y%m%d')}_{period.end_date.strftime('%Y%m%d')}.xls"
+        file_name = f"club_{club_id}_statistics_{period.start_date.strftime('%Y%m%d')}_{period.end_date.strftime('%Y%m%d')}.xlsx"
         content = cls._build_statistics_excel_by_date(club_name, owner_name, period.start_date, period.end_date, total_amount, rows)
         return content, file_name
