@@ -1,3 +1,5 @@
+from typing import List
+
 from fastapi import Depends, HTTPException
 from src.shared.dependencies.dependencies import get_current_user, super_admin_only
 from src.modules.users.schemas import SUser, SUserGetData, SUserPostData, SUserVerify, SUserPhoneAuth
@@ -92,10 +94,17 @@ async def demote_owner_to_user(phone_number: str, admin: User = Depends(super_ad
     return {"message": "User role changed to user", "phone_number": phone_number, "role": Role.user.value}
 
 
-
 @router.get("/search", summary="Find user by phone number")
 async def get_user_by_filter(phone_number: str):
     user = await UserService.find_user_by_phone_number(phone_number)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    return {"message": "User found", "user": user.phone_number}
+    return {"message": "User found", "user": user.phone_number, "role": user.role}
+
+
+@router.get("/list_of_users", summary="Get all owners list (superadmin)", response_model=List[SUserGetData])
+async def get_user_by_phone(admin: User = Depends(super_admin_only)):
+    users = await UserService.find_all_users()
+    if not users:
+        raise HTTPException(status_code=404, detail="User not found")
+    return users

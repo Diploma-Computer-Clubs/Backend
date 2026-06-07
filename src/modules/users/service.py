@@ -1,10 +1,11 @@
 import logging
 import random
 from datetime import datetime
+from typing import List
 
 from sqlalchemy import func
 from src.modules.users.dao import UserDAO
-from src.modules.users.schemas import SUser, SUserPostData
+from src.modules.users.schemas import SUser, SUserPostData, SUserGetData
 from src.shared.schemas.schemas import Role
 from src.shared.redis.utils import get_code, delete_code, set_code
 from src.shared.utils.auth_utils import get_password_hash
@@ -31,6 +32,14 @@ class UserService:
     @classmethod
     async def find_user_by_phone_number(cls, phone_number: str) -> SUser | None:
         result = await UserDAO.find_one_or_none(phone_number=phone_number)
+        if not result:
+            return None
+        return result
+
+    @classmethod
+    async def find_all_users(cls) -> List[SUserGetData] | None:
+        owner = "owner"
+        result = await UserDAO.get_users(role=owner)
         if not result:
             return None
         return result
