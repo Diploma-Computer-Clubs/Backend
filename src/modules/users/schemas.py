@@ -9,6 +9,11 @@ class SUser(SUserBase, SUserPassword):
     role: Role = Field(default=Role.user)
     city_id: int = Field(..., description="City_id of the user")
 
+class SUserRegister(SUserBase, SUserPassword):
+    model_config = ConfigDict(from_attributes=True)
+    full_name: str = Field(..., min_length=1, max_length=50)
+    city_id: int = Field(..., description="City_id of the user")
+
 class SUserGetData(SUserBase):
     model_config = ConfigDict(from_attributes=True)
     full_name: str

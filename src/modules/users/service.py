@@ -5,7 +5,7 @@ from typing import List
 
 from sqlalchemy import func
 from src.modules.users.dao import UserDAO
-from src.modules.users.schemas import SUser, SUserPostData, SUserGetData
+from src.modules.users.schemas import SUser, SUserPostData, SUserGetData, SUserRegister
 from src.shared.schemas.schemas import Role
 from src.shared.redis.utils import get_code, delete_code, set_code
 from src.shared.utils.auth_utils import get_password_hash
@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 class UserService:
     @classmethod
-    async def register_new_user(cls, user_data: SUser):
+    async def register_new_user(cls, user_data: SUserRegister):
         existing_user = await UserDAO.find_one_or_none(phone_number=user_data.phone_number)
         if existing_user:
             return None

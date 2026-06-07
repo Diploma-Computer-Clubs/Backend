@@ -2,7 +2,7 @@ from typing import List
 
 from fastapi import Depends, HTTPException
 from src.shared.dependencies.dependencies import get_current_user, super_admin_only
-from src.modules.users.schemas import SUser, SUserGetData, SUserPostData, SUserVerify, SUserPhoneAuth
+from src.modules.users.schemas import SUser, SUserGetData, SUserPostData, SUserVerify, SUserPhoneAuth, SUserRegister
 from fastapi import APIRouter
 from src.modules.users.model import User
 from src.modules.users.service import UserService
@@ -14,7 +14,7 @@ router = APIRouter(prefix='/users', tags=['Users Management'])
 
 
 @router.post("/registration", summary="Register new user")
-async def register_user(user_data: SUser):
+async def register_user(user_data: SUserRegister):
     user = await UserService.register_new_user(user_data)
     if not user:
         raise HTTPException(status_code=409, detail='User already exists')
