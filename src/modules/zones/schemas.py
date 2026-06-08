@@ -2,11 +2,9 @@ from typing import Optional
 
 from pydantic import Field, BaseModel
 
-from src.shared.schemas.schemas import ZoneName
-
 
 class SZoneCreate(BaseModel):
-    name: ZoneName = Field(..., description="Zone name")
+    name: str = Field(..., description="Zone name")
     cost: int = Field(..., description="Zone cost")
     cpu: str = Field(..., description="Zone cpu")
     gpu: str = Field(..., description="Zone gpu")
@@ -19,7 +17,7 @@ class SZoneCreate(BaseModel):
 
 class SZoneGet(BaseModel):
     id: int = Field(..., description="Zone ID")
-    name: ZoneName = Field(..., description="Zone name")
+    name: str = Field(..., description="Zone name")
     cost: int = Field(..., description="Zone cost")
     cpu: str = Field(..., description="Zone cpu")
     gpu: str = Field(..., description="Zone gpu")
