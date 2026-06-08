@@ -78,7 +78,6 @@ async def get_club_availability(club_id: int, start_time: datetime, end_time: da
         raise HTTPException(404, detail="Zones not found for this club")
     return zones
 
-#вебсокет
 @router.websocket("/{club_id}/availability/ws")
 async def ws_club_availability(websocket: WebSocket, club_id: int):
     await websocket.accept()
