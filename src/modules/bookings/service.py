@@ -45,28 +45,31 @@ class BookingService:
             if (info.end_time - info.start_time) > timedelta(hours=12):
                 raise HTTPException(status_code=400, detail="Max duration is 12 hours")
 
-            computer = await ComputerDAO.find_computer_in_club(
-                computer_id=info.computer_id,
-                zone_id=info.zone_id,
-                club_id=info.club_id
-            )
+            computer = await ComputerDAO.find_computer_in_club(computer_id=info.computer_id,zone_id=info.zone_id,club_id=info.club_id)
             if not computer:
                 raise HTTPException(status_code=404, detail="Computer not found in this zone/club")
 
-            is_occupied = await BookingDAO.find_one_or_none_collision(
-                computer_id=info.computer_id,
-                start_time=info.start_time,
-                end_time=info.end_time
-            )
+            is_occupied = await BookingDAO.find_one_or_none_collision(computer_id=info.computer_id,start_time=info.start_time,end_time=info.end_time)
             if is_occupied:
                 raise HTTPException(status_code=409, detail="This time slot is already occupied")
 
             data = info.model_dump()
-            data.update({
-                "user_id": user_id,
-                "start_time": info.start_time.replace(tzinfo=None),
-                "end_time": info.end_time.replace(tzinfo=None)
-            })
+            data.update({"user_id": user_id,"start_time": info.start_time.replace(tzinfo=None),"end_time": info.end_time.replace(tzinfo=None)})
+            prepared_bookings.append(data)
+
+        return prepared_bookings
+
+    @classmethod
+    async def _prepare_admin_bookings(cls, bookings_info: List[SBookingCreate], user_id: int) -> List[dict]:
+        prepared_bookings = []
+
+        for info in bookings_info:
+            is_occupied = await BookingDAO.find_one_or_none_collision(computer_id=info.computer_id,start_time=info.start_time,end_time=info.end_time)
+            if is_occupied:
+                raise HTTPException(status_code=409, detail="This time slot is already occupied")
+
+            data = info.model_dump()
+            data.update({"user_id": user_id,"start_time": info.start_time.replace(tzinfo=None),"end_time": info.end_time.replace(tzinfo=None)})
             prepared_bookings.append(data)
 
         return prepared_bookings
@@ -131,7 +134,7 @@ class BookingService:
 
     @classmethod
     async def create_admin_booking(cls, bookings_info: List[SBookingCreate], user_id: int):
-        prepared_bookings = await cls._prepare_and_validate_bookings(bookings_info, user_id)
+        prepared_bookings = await cls._prepare_admin_bookings(bookings_info, user_id)
         bookings = await BookingDAO.add_list(prepared_bookings)
         cls._schedule_booking_tasks(bookings)
         return bookings
@@ -167,10 +170,5 @@ class BookingService:
         if not booking:
             return False
 
-        result = await BookingDAO.update_check_in_related(
-            booking.user_id,
-            booking.start_time,
-            booking.end_time,
-            booking_info.is_checked_in,
-        )
+        result = await BookingDAO.update_check_in_related(booking.user_id,booking.start_time,booking.end_time,booking_info.is_checked_in,)
         return result > 0
