@@ -27,7 +27,7 @@ async def send_sms(phone: SUserPhoneAuth):
         raise HTTPException(status_code=400, detail="Invalid phone")
     return {"status": "sent"}
 
-@router.post("/verify-code", summary="Verify code and issue reset token")
+@router.post("/verify", summary="Verify code and issue reset token")
 async def verify(user_data: SUserVerify):
     is_verified = await UserService.verify_phone_code(user_data.phone_number, user_data.code)
     if not is_verified:
