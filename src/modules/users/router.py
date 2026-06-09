@@ -20,7 +20,7 @@ async def register_user(user_data: SUserRegister):
         raise HTTPException(status_code=409, detail='User already exists')
     return set_auth_tokens(user.id)
 
-@router.post("/verification-code", summary="Request SMS verification code")
+@router.post("/send-sms", summary="Request SMS verification code")
 async def send_sms(phone: SUserPhoneAuth):
     result = await UserService.request_verification(phone=phone.phone_number)
     if not result:
