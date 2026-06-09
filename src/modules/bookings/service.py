@@ -83,7 +83,7 @@ class BookingService:
                 groups[key] = booking
 
         for booking in groups.values():
-            eta = booking.start_time + timedelta(hours=1)
+            eta = datetime.now() + timedelta(minutes=1)
             countdown = max(0, int((eta - datetime.now()).total_seconds()))
             deactivate_booking_if_no_show.apply_async(
                 args=[booking.id],
