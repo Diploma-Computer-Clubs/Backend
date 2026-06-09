@@ -40,7 +40,7 @@ async def verify(user_data: SUserVerify):
     reset_token = create_reset_password_token({"sub": str(user.id)})
     return {"status": "verified", "reset_token": reset_token}
 
-@router.patch("/password", summary="Reset user password")
+@router.patch("/reset-password", summary="Reset user password")
 async def reset_password(
         new_password: str, user_id: int = Depends(get_user_id_for_reset)):
     success = await UserService.reset_password_by_id(user_id, new_password)
